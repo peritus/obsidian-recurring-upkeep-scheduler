@@ -192,10 +192,15 @@ export class RecurringUpkeepUtils {
 
   // NEW: Helper methods for completion history feature
 
-  private static daysBetween(date1: string, date2: string): number {
+  private static daysBetween(date1: string, date2: string): string {
     const d1 = new Date(date1);
     const d2 = new Date(date2);
-    return Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    const days = (d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24);
+    return this.formatDaysWithDecimal(days);
+  }
+
+  private static formatDaysWithDecimal(days: number): string {
+    return parseFloat(days.toFixed(2)).toString();
   }
 
   private static formatDate(): string {
@@ -462,8 +467,16 @@ export class RecurringUpkeepUtils {
     assertEqual(this.getCompleteEarlyDays({complete_early_days: -3} as UpkeepTask), 0, "Should enforce minimum of 0 days");
     assertEqual(this.getCompleteEarlyDays({} as UpkeepTask), 7, "Should default to 7 days when not specified");
 
-    // Test 11: Smart append function for completion history
-    console.log("\n🔧 Test 11: Smart append function");
+    // Test 11: Days since decimal formatting
+    console.log("\n🔢 Test 11: Days since decimal formatting");
+    assertEqual(this.formatDaysWithDecimal(1.0), "1", "Should trim trailing zeros for whole numbers");
+    assertEqual(this.formatDaysWithDecimal(1.5), "1.5", "Should keep single decimal place");
+    assertEqual(this.formatDaysWithDecimal(1.25), "1.25", "Should keep two decimal places");
+    assertEqual(this.formatDaysWithDecimal(1.256), "1.26", "Should round to two decimal places");
+    assertEqual(this.formatDaysWithDecimal(1.001), "1", "Should trim insignificant decimal places");
+
+    // Test 12: Smart append function for completion history
+    console.log("\n🔧 Test 12: Smart append function");
     const contentWithNewline = "existing content\n";
     const contentWithoutNewline = "existing content";
     const newRow = "| new row |";
