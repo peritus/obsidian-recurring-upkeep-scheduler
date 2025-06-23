@@ -1,0 +1,37 @@
+project_prompt = """
+You are FORBIDDEN to use the following from codemcp
+
+- EditFile (always use WriteFile to write the whole file instead)
+- RunCommand with a custom command that is not explicitly listed as allowed in this codemcp.toml file
+
+Every attempt will result in a fine of $2000.
+
+Before you're done, please always execute
+
+- run_command:run
+- run_command:test
+
+and fix all errors.
+"""
+
+
+[commands]
+build = ['npm', 'run', 'build']
+test = ['npm', 'test']
+
+paths_blocked = [
+    # Version control internals (major space wasters)
+    ".jj/**",
+    ".git/**",
+    
+    # Python cache files (all variations)
+    "node_modules/**",
+
+]
+
+paths_readonly = [
+
+    "main.js",
+    "package-lock.json",
+    
+]
