@@ -144,6 +144,7 @@ export class RecurringUpkeepUtils {
   static async markTaskComplete(app: App, filePath: string): Promise<MarkCompleteResult> {
     try {
       const today = new Date().toISOString().split('T')[0];
+      const currentTimestamp = new Date().toISOString(); // Full timestamp for accurate days calculation
       const abstractFile = app.vault.getAbstractFileByPath(filePath);
       if (!abstractFile) throw new Error("File not found");
 
@@ -162,14 +163,14 @@ export class RecurringUpkeepUtils {
           intervalDays = this.calculateIntervalInDays(fm.interval, fm.interval_unit);
         }
         
-        // Update frontmatter (existing logic)
+        // Update frontmatter (existing logic) - keep using date only for consistency
         fm.last_done = today;
         if (fm.next_due) delete fm.next_due;
       });
 
-      // NEW: Add completion history entry (simple append)
+      // NEW: Add completion history entry using full timestamp for accurate calculation
       try {
-        await this.appendCompletionHistory(app, file, previousLastDone, today, intervalDays);
+        await this.appendCompletionHistory(app, file, previousLastDone, currentTimestamp, intervalDays);
       } catch (historyError) {
         const errorMessage = this.getLocalizedFailedToUpdateCompletionHistory();
         console.warn(`${errorMessage}:`, historyError);
@@ -292,7 +293,7 @@ export class RecurringUpkeepUtils {
     app: App,
     file: TFile,
     previousLastDone: string | undefined,
-    todayDate: string,
+    currentTimestamp: string,
     intervalDays: number
   ): Promise<void> {
     const content = await app.vault.read(file);
@@ -310,7 +311,7 @@ export class RecurringUpkeepUtils {
     
     // Calculate days since last completion
     const daysSinceLast = previousLastDone ? 
-      this.daysBetween(previousLastDone, todayDate) : '-';
+      this.daysBetween(previousLastDone, currentTimestamp) : '-';
     
     // Get current date and time as separate values
     const date = this.formatDate();
@@ -475,8 +476,22 @@ export class RecurringUpkeepUtils {
     assertEqual(this.formatDaysWithDecimal(1.256), "1.26", "Should round to two decimal places");
     assertEqual(this.formatDaysWithDecimal(1.001), "1", "Should trim insignificant decimal places");
 
-    // Test 12: Smart append function for completion history
-    console.log("\n🔧 Test 12: Smart append function");
+    // Test 12: Fractional days calculation with timestamps
+    console.log("\n⏰ Test 12: Fractional days calculation with timestamps");
+    // Test date only vs timestamp - should show fractional days
+    const dateOnlyResult = this.daysBetween("2024-01-01", "2024-01-02T12:00:00.000Z");
+    assertEqual(dateOnlyResult, "1.5", "Date vs timestamp should calculate 1.5 days (12 hours = 0.5 days)");
+    
+    // Test exact 2.5 days difference
+    const exactHalfDayResult = this.daysBetween("2024-01-01T00:00:00.000Z", "2024-01-03T12:00:00.000Z");
+    assertEqual(exactHalfDayResult, "2.5", "Should calculate exactly 2.5 days");
+    
+    // Test quarter day precision
+    const quarterDayResult = this.daysBetween("2024-01-01T00:00:00.000Z", "2024-01-01T06:00:00.000Z");
+    assertEqual(quarterDayResult, "0.25", "Should calculate 0.25 days (6 hours)");
+
+    // Test 13: Smart append function for completion history
+    console.log("\n🔧 Test 13: Smart append function");
     const contentWithNewline = "existing content\n";
     const contentWithoutNewline = "existing content";
     const newRow = "| new row |";
