@@ -1,0 +1,44 @@
+[tool.bumpversion]
+current_version = "1.0.4"
+
+# Parse pattern that understands both regular and preview versions  
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(?:-(?P<release>preview)\\.(?P<preview>\\d+))?"
+
+# Preview serialization - always includes preview suffix
+serialize = [
+    "{major}.{minor}.{patch}-{release}.{preview}"  # Preview versions: 0.9.1-preview.1
+]
+
+commit = true
+tag = true
+tag_name = "{new_version}"
+tag_message = "Preview {new_version}"
+message = "Bump version: {current_version} → {new_version}"
+regex = true
+
+# PREVIEW CONFIG: Update package.json AND sync release config
+
+[[tool.bumpversion.files]]
+filename = "package.json"
+search = '"version": "{current_version}"'
+replace = '"version": "{new_version}"'
+
+# Keep release config in sync
+[[tool.bumpversion.files]]
+filename = ".bumpversion.toml"
+search = 'current_version = "{current_version}"'
+replace = 'current_version = "{new_version}"'
+
+# Keep preview config in sync with itself
+[[tool.bumpversion.files]]
+filename = ".bumpversion-preview.toml"
+search = 'current_version = "{current_version}"'
+replace = 'current_version = "{new_version}"'
+
+# Release part: always "preview" for this config
+[tool.bumpversion.parts.release]
+values = ["preview"]
+
+# Preview part: for incrementing preview numbers
+[tool.bumpversion.parts.preview]
+first_value = "1"

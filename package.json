@@ -10,7 +10,16 @@
     "dev": "node esbuild.config.mjs",
     "test": "node tests.js",
     "test:ci": "npm run test",
-    "version": "node version-bump.mjs && git add manifest.json versions.json"
+    "version:preview:patch": "bump-my-version bump patch --config-file .bumpversion-preview.toml",
+    "version:preview:minor": "bump-my-version bump minor --config-file .bumpversion-preview.toml ",
+    "version:preview:major": "bump-my-version bump major --config-file .bumpversion-preview.toml ",
+    "version:preview": "bump-my-version bump preview --config-file .bumpversion-preview.toml",
+    "version:release": "bump-my-version bump release",
+    "version:patch": "bump-my-version bump patch",
+    "version:minor": "bump-my-version bump minor",
+    "version:major": "bump-my-version bump major",
+    "version:show": "bump-my-version show-bump",
+    "version:preview:show": "bump-my-version show-bump --config-file .bumpversion-preview.toml"
   },
   "keywords": [],
   "author": "Filip",
