@@ -8,6 +8,7 @@
     "build:debug": "LOGGING_ENABLED=true npm run build",
     "build-and-install": "npm run build:debug && node install-dev.js",
     "dev": "node esbuild.config.mjs",
+    "type-check": "tsc -noEmit -skipLibCheck",
     "test": "node tests.js",
     "test:ci": "npm run test",
     "version:preview:patch": "bump-my-version bump patch --config-file .bumpversion-preview.toml",
