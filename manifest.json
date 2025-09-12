@@ -4,11 +4,8 @@
   "version": "1.0.5",
   "minAppVersion": "0.15.0",
   "description": "Schedule and track recurring upkeep tasks with flexible filtering and visual progress indicators",
-  "author": "Filip",
+  "author": "peritus",
   "authorUrl": "",
   "fundingUrl": "",
-  "isDesktopOnly": false,
-  "dependencies": [
-    "dataview"
-  ]
+  "isDesktopOnly": false
 }
