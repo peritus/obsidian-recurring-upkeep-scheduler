@@ -1,5 +1,6 @@
 import { ProcessedTask } from '../types';
 import { RecurringUpkeepUtils } from './RecurringUpkeepUtils';
+import { RECURRING_UPKEEP_LOGGING_ENABLED } from '../constants';
 
 export type TaskStatusClass = 
   | 'recurring-upkeep-never-completed'
@@ -30,7 +31,24 @@ export class TaskStyling {
    * This method determines the semantic status based on task state
    */
   static getStatusClass(task: ProcessedTask): TaskStatusClass {
-    return this.getTaskStatus(task).statusClass;
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Getting status class for task', {
+        taskName: task.file?.name,
+        lastDone: task.last_done,
+        daysRemaining: task.daysRemaining
+      });
+    }
+
+    const result = this.getTaskStatus(task).statusClass;
+
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Status class determined', {
+        taskName: task.file?.name,
+        statusClass: result
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -38,23 +56,46 @@ export class TaskStyling {
    * Uses the same logic as status class to ensure consistency
    */
   static getProgressClass(task: ProcessedTask, currentTime?: string): TaskProgressClass {
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Getting progress class for task', {
+        taskName: task.file?.name,
+        currentTime
+      });
+    }
+
     const statusInfo = this.getTaskStatus(task, currentTime);
     
     // Map status classes to progress classes
+    let result: TaskProgressClass;
     switch (statusInfo.statusClass) {
       case 'recurring-upkeep-never-completed':
-        return 'recurring-upkeep-progress-never-completed';
+        result = 'recurring-upkeep-progress-never-completed';
+        break;
       case 'recurring-upkeep-overdue':
-        return 'recurring-upkeep-progress-overdue';
+        result = 'recurring-upkeep-progress-overdue';
+        break;
       case 'recurring-upkeep-due-today':
-        return 'recurring-upkeep-progress-due-today';
+        result = 'recurring-upkeep-progress-due-today';
+        break;
       case 'recurring-upkeep-due-soon':
-        return 'recurring-upkeep-progress-due-soon';
+        result = 'recurring-upkeep-progress-due-soon';
+        break;
       case 'recurring-upkeep-up-to-date':
-        return 'recurring-upkeep-progress-up-to-date';
+        result = 'recurring-upkeep-progress-up-to-date';
+        break;
       default:
-        return 'recurring-upkeep-progress-unknown';
+        result = 'recurring-upkeep-progress-unknown';
     }
+
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Progress class determined', {
+        taskName: task.file?.name,
+        statusClass: statusInfo.statusClass,
+        progressClass: result
+      });
+    }
+
+    return result;
   }
 
   /**

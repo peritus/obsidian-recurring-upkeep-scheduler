@@ -8,6 +8,7 @@ import { FilterParser } from './FilterParser';
 import { I18nUtils } from '../i18n/I18nUtils';
 import { WidgetEventManager } from '../utils/WidgetEventManager';
 import { TaskStyling } from '../utils/TaskStyling';
+import { RECURRING_UPKEEP_LOGGING_ENABLED } from '../constants';
 
 // Type definitions for TFile with tags (extended Obsidian interface)
 interface TFileWithTags extends TFile {
@@ -92,9 +93,13 @@ export class UpkeepTableView {
         this.container.empty();
         this.createTable(this.container, filteredTasks);
         
-        console.debug(`🔄 Table widget ${this.widgetId} refreshed - data changed`);
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.debug(`🔄 Table widget ${this.widgetId} refreshed - data changed`);
+        }
       } else {
-        console.debug(`🔄 Table widget ${this.widgetId} - no data changes, skipping refresh`);
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.debug(`🔄 Table widget ${this.widgetId} - no data changes, skipping refresh`);
+        }
       }
     } catch (error) {
       console.error(`❌ Error refreshing table widget ${this.widgetId}:`, error);

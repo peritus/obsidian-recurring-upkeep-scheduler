@@ -6,6 +6,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { I18nUtils } from '../i18n/I18nUtils';
 import { WidgetEventManager } from '../utils/WidgetEventManager';
 import { TaskStyling } from '../utils/TaskStyling';
+import { RECURRING_UPKEEP_LOGGING_ENABLED } from '../constants';
 
 export class UpkeepStatusView {
   private app: App;
@@ -67,7 +68,9 @@ export class UpkeepStatusView {
           this.container.empty();
           this.renderNoTaskMessage(this.container);
           this.lastTaskData = null;
-          console.debug(`🔄 Status widget ${this.widgetId} refreshed - task removed`);
+          if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+            console.debug(`🔄 Status widget ${this.widgetId} refreshed - task removed`);
+          }
         }
         return;
       }
@@ -79,9 +82,13 @@ export class UpkeepStatusView {
         this.container.empty();
         this.renderTaskStatus(this.container, processedTask);
         this.lastTaskData = processedTask;
-        console.debug(`🔄 Status widget ${this.widgetId} refreshed - data changed`);
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.debug(`🔄 Status widget ${this.widgetId} refreshed - data changed`);
+        }
       } else {
-        console.debug(`🔄 Status widget ${this.widgetId} - no data changes, skipping refresh`);
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.debug(`🔄 Status widget ${this.widgetId} - no data changes, skipping refresh`);
+        }
       }
     } catch (error) {
       console.error(`❌ Error refreshing status widget ${this.widgetId}:`, error);
@@ -191,7 +198,9 @@ export class UpkeepStatusView {
         return I18nUtils.t.status.upToDate;
       }
     } catch (error) {
-      console.warn('Error localizing status, using fallback:', error);
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.warn('Error localizing status, using fallback:', error);
+      }
       return task.status; // Fallback to original if i18n fails
     }
   }
@@ -233,7 +242,9 @@ export class UpkeepStatusView {
         dueDateText = `📅 ${I18nUtils.t.ui.labels.notScheduled}`;
       }
     } catch (error) {
-      console.warn('Error localizing date info, using fallback:', error);
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.warn('Error localizing date info, using fallback:', error);
+      }
       dueDateText = `📅 ${task.calculatedNextDue ? this.formatAbsoluteDate(task.calculatedNextDue) : I18nUtils.t.ui.labels.notScheduled}`;
     }
 
@@ -249,7 +260,9 @@ export class UpkeepStatusView {
           this.now
         );
       } catch (error) {
-        console.warn('Error adding localized tooltip:', error);
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.warn('Error adding localized tooltip:', error);
+        }
       }
     }
   }
@@ -332,7 +345,9 @@ complete_early_days: 7
         day: 'numeric'
       });
     } catch (error) {
-      console.warn('Error formatting absolute date, using fallback:', error);
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.warn('Error formatting absolute date, using fallback:', error);
+      }
       return dateString;
     }
   }

@@ -2,6 +2,7 @@ import { App } from 'obsidian';
 import { LocaleDefinition, LocaleKey, I18nOptions } from './types';
 import { en } from './locales/en';
 import { de } from './locales/de';
+import { RECURRING_UPKEEP_LOGGING_ENABLED } from '../constants';
 
 // Type definitions for accessing Obsidian app configuration
 interface VaultConfig {
@@ -47,7 +48,9 @@ export class I18nManager {
       if (normalizedLocale.startsWith('en')) return 'en';
 
     } catch (error) {
-      console.log('Could not detect locale, using fallback:', error);
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.log('Could not detect locale, using fallback:', error);
+      }
     }
 
     return this.fallbackLocale;

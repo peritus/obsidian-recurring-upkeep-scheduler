@@ -5,6 +5,7 @@ import { UpkeepTableView } from './views/UpkeepTableView';
 import { UpkeepStatusView } from './views/UpkeepStatusView';
 import { I18nUtils } from './i18n/I18nUtils';
 import { WidgetEventManager } from './utils/WidgetEventManager';
+import { RECURRING_UPKEEP_LOGGING_ENABLED } from './constants';
 
 // Type definitions for Dataview page data
 interface DataviewPage {
@@ -53,60 +54,98 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
   private widgetEventManager: WidgetEventManager;
 
   async onload() {
-    console.log('Loading Recurring Upkeep Scheduler plugin');
-
-    // Phase 1: Initialize i18n system early in plugin lifecycle
-    try {
-      I18nUtils.init(this.app);
-      const localeInfo = I18nUtils.getLocaleInfo();
-      console.log('🌍 Plugin loaded with locale:', localeInfo.current,
-                  '(available:', localeInfo.available.join(', '), ')');
-    } catch (error) {
-      console.error('Failed to initialize i18n system:', error);
-      // Continue loading plugin even if i18n fails
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.info('[Recurring Upkeep] Plugin loading...');
     }
 
-    // Phase 2: Initialize the centralized event manager
-    this.widgetEventManager = new WidgetEventManager(this.app);
+    try {
+      // Phase 1: Initialize i18n system early in plugin lifecycle
+      try {
+        I18nUtils.init(this.app);
+        const localeInfo = I18nUtils.getLocaleInfo();
+        
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.info('[Recurring Upkeep] i18n system initialized', {
+            current: localeInfo.current,
+            available: localeInfo.available
+          });
+        }
+      } catch (error) {
+        console.error('[Recurring Upkeep] Failed to initialize i18n system', error);
+        // Continue loading plugin even if i18n fails
+      }
 
-    this.checkDataviewDependency();
+      // Phase 2: Initialize the centralized event manager
+      this.widgetEventManager = new WidgetEventManager(this.app);
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.debug('[Recurring Upkeep] Widget event manager initialized');
+      }
 
-    // Register table view codeblock processor
-    this.registerMarkdownCodeBlockProcessor('recurring-upkeep-table', (source, el, ctx) => {
-      this.renderUpkeepTable(source, el, ctx);
-    });
+      this.checkDataviewDependency();
 
-    // Register individual status widget codeblock processor
-    this.registerMarkdownCodeBlockProcessor('recurring-upkeep-status', (source, el, ctx) => {
-      this.renderUpkeepStatus(source, el, ctx);
-    });
+      // Register table view codeblock processor
+      this.registerMarkdownCodeBlockProcessor('recurring-upkeep-table', (source, el, ctx) => {
+        this.renderUpkeepTable(source, el, ctx);
+      });
 
-    // Register post-processor for completion history tables
-    this.registerMarkdownPostProcessor((element, context) => {
-      this.enhanceCompletionHistoryTables(element, context);
-    });
+      // Register individual status widget codeblock processor
+      this.registerMarkdownCodeBlockProcessor('recurring-upkeep-status', (source, el, ctx) => {
+        this.renderUpkeepStatus(source, el, ctx);
+      });
 
-    // Run tests in development mode
-    if (process.env.NODE_ENV === 'development') {
-      this.runTests();
+      // Register post-processor for completion history tables
+      this.registerMarkdownPostProcessor((element, context) => {
+        this.enhanceCompletionHistoryTables(element, context);
+      });
+
+      // Run tests in development mode
+      if (process.env.NODE_ENV === 'development') {
+        this.runTests();
+      }
+
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.info('[Recurring Upkeep] Plugin loaded successfully');
+      }
+    } catch (error) {
+      console.error('[Recurring Upkeep] Plugin loading failed', error);
+      throw error;
     }
   }
 
   onunload() {
-    console.log('Unloading Recurring Upkeep Scheduler plugin');
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.info('[Recurring Upkeep] Plugin unloading...');
+    }
     
     // Clean up the event manager
     if (this.widgetEventManager) {
       this.widgetEventManager.cleanup();
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.debug('[Recurring Upkeep] Widget event manager cleaned up');
+      }
     }
   }
 
   private enhanceCompletionHistoryTables(element: HTMLElement, context: MarkdownPostProcessorContext): void {
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Enhancing completion history tables', {
+        elementId: element.id,
+        sourcePath: context.sourcePath
+      });
+    }
+
     const tables = element.querySelectorAll('table');
     
-    tables.forEach(table => {
+    tables.forEach((table, index) => {
       if (this.isCompletionHistoryTable(table as HTMLTableElement)) {
         this.addStatisticsDashboard(table as HTMLTableElement);
+        
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.debug('[Recurring Upkeep] Enhanced completion history table', {
+            tableIndex: index,
+            sourcePath: context.sourcePath
+          });
+        }
       }
     });
   }
@@ -116,12 +155,22 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
     const headerTexts = Array.from(headers).map(h => h.textContent?.toLowerCase().trim());
     
     // Check for completion history table headers
-    return headerTexts.includes('date') && 
+    const isHistoryTable = headerTexts.includes('date') && 
            headerTexts.includes('days since last') && 
            headerTexts.includes('days scheduled');
+
+    if (RECURRING_UPKEEP_LOGGING_ENABLED && isHistoryTable) {
+      console.debug('[Recurring Upkeep] Identified completion history table', {
+        headers: headerTexts
+      });
+    }
+
+    return isHistoryTable;
   }
 
   private addStatisticsDashboard(table: HTMLTableElement): void {
+    const startTime = RECURRING_UPKEEP_LOGGING_ENABLED ? performance.now() : 0;
+
     // Parse table data
     const rows = Array.from(table.querySelectorAll('tbody tr'));
     if (rows.length === 0) return;
@@ -142,6 +191,15 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
     const avgDaysBetween = Math.round((completions.reduce((sum, c) => sum + c.daysSinceLast, 0) / completions.length) * 10) / 10;
     const onTimeCount = completions.filter(c => c.daysSinceLast <= c.daysScheduled).length;
     const onTimeRate = Math.round((onTimeCount / totalCompletions) * 100);
+
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Calculated statistics for dashboard', {
+        totalCompletions,
+        avgDaysBetween,
+        onTimeCount,
+        onTimeRate: `${onTimeRate}%`
+      });
+    }
 
     // Get number of columns for colspan
     const headerCells = table.querySelectorAll('thead th');
@@ -205,9 +263,21 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
     footerRow.appendChild(footerCell);
     tfoot.appendChild(footerRow);
     table.appendChild(tfoot);
+
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      const duration = performance.now() - startTime;
+      console.debug('[Recurring Upkeep] Statistics dashboard added', {
+        duration: `${duration.toFixed(2)}ms`,
+        statsGenerated: 3
+      });
+    }
   }
 
   private async runTests() {
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.info('[Recurring Upkeep] Running tests in development mode...');
+    }
+
     try {
       // Load tests from external file (works in both Node.js and browser)
       if (typeof window !== 'undefined' && window.RecurringUpkeepTests) {
@@ -217,6 +287,10 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
           console.error(`❌ ${results.failed} tests failed out of ${results.total}`);
         } else {
           console.log(`✅ All ${results.total} tests passed!`);
+        }
+
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.debug('[Recurring Upkeep] External test results', results);
         }
       } else {
         // Fallback: run basic tests using plugin utilities
@@ -228,18 +302,33 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
         } else {
           console.log(`✅ All ${results.total} tests passed!`);
         }
+
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.debug('[Recurring Upkeep] Fallback test results', results);
+        }
       }
     } catch (error) {
       console.error('Failed to run tests:', error);
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.error('[Recurring Upkeep] Test execution error details', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        });
+      }
     }
   }
 
   private checkDataviewDependency(): void {
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Checking Dataview dependency...');
+    }
+
     // Safe access to plugin system using type assertion
     const pluginSystem = this.app as unknown as { plugins: ObsidianPluginSystem };
     const dataviewPlugin = pluginSystem.plugins.plugins.dataview;
 
     if (!dataviewPlugin) {
+      console.error('[Recurring Upkeep] Dataview plugin not found');
       console.error('Recurring Upkeep Scheduler: Dataview plugin is required but not found');
       return;
     }
@@ -247,12 +336,24 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
     this.dataviewApi = dataviewPlugin.api || null;
 
     if (!this.dataviewApi) {
+      console.error('[Recurring Upkeep] Dataview API not available');
       console.error('Recurring Upkeep Scheduler: Dataview API is not available');
       return;
+    }
+
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.info('[Recurring Upkeep] Dataview dependency check passed');
     }
   }
 
   private async renderUpkeepTable(filterQuery: string, container: HTMLElement, ctx: MarkdownPostProcessorContext): Promise<void> {
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Rendering upkeep table', {
+        filterQuery,
+        sourcePath: ctx.sourcePath
+      });
+    }
+
     try {
       if (!this.dataviewApi) {
         container.createEl('div', {
@@ -266,10 +367,28 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
       const processedTasks = TaskProcessor.processTasks(tasks);
       const sortedTasks = TaskProcessor.sortTasks(processedTasks);
 
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.debug('[Recurring Upkeep] Tasks processed for table', {
+          rawTaskCount: tasks.length,
+          processedTaskCount: processedTasks.length,
+          sortedTaskCount: sortedTasks.length
+        });
+      }
+
       const tableView = new UpkeepTableView(this.app, this.widgetEventManager, filterQuery);
       tableView.render(container, sortedTasks);
 
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.info('[Recurring Upkeep] Upkeep table rendered successfully');
+      }
+
     } catch (error) {
+      console.error('[Recurring Upkeep] Error rendering upkeep table', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        filterQuery,
+        sourcePath: ctx.sourcePath
+      });
       console.error('Error rendering upkeep table:', error);
       container.createEl('div', {
         text: `Error loading upkeep tasks: ${(error as Error).message}`,
@@ -279,10 +398,24 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
   }
 
   private async renderUpkeepStatus(source: string, container: HTMLElement, ctx: MarkdownPostProcessorContext): Promise<void> {
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Rendering upkeep status widget', {
+        source,
+        sourcePath: ctx.sourcePath
+      });
+    }
+
     try {
       const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 
       if (!file || !(file instanceof TFile)) {
+        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+          console.warn('[Recurring Upkeep] Could not determine current file for status widget', {
+            sourcePath: ctx.sourcePath,
+            fileFound: !!file,
+            fileType: file ? file.constructor.name : 'none'
+          });
+        }
         container.createEl('div', {
           text: 'Could not determine current file for status widget',
           cls: 'recurring-upkeep-error'
@@ -293,7 +426,19 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
       const statusView = new UpkeepStatusView(this.app, this.widgetEventManager);
       await statusView.render(container, file);
 
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.info('[Recurring Upkeep] Upkeep status widget rendered successfully', {
+          fileName: file.name
+        });
+      }
+
     } catch (error) {
+      console.error('[Recurring Upkeep] Error rendering upkeep status', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        source,
+        sourcePath: ctx.sourcePath
+      });
       console.error('Error rendering upkeep status:', error);
       container.createEl('div', {
         text: `Error loading task status: ${(error as Error).message}`,
@@ -303,6 +448,10 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
   }
 
   async getUpkeepTasks(): Promise<UpkeepTask[]> {
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.debug('[Recurring Upkeep] Fetching upkeep tasks from Dataview...');
+    }
+
     if (!this.dataviewApi) {
       throw new Error('Dataview API not available');
     }
@@ -331,11 +480,31 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
 
         if (task.interval && task.interval_unit) {
           tasks.push(task);
+
+          if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+            console.debug('[Recurring Upkeep] Found valid upkeep task', {
+              fileName: task.file.name,
+              interval: task.interval,
+              intervalUnit: task.interval_unit,
+              lastDone: task.last_done
+            });
+          }
         }
+      }
+
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.info('[Recurring Upkeep] Tasks fetched from Dataview', {
+          totalTasksFound: tasks.length,
+          tasksWithInterval: tasks.filter(t => t.interval && t.interval_unit).length
+        });
       }
 
       return tasks;
     } catch (error) {
+      console.error('[Recurring Upkeep] Error fetching tasks from Dataview', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       console.error('Error fetching tasks from Dataview:', error);
       throw new Error(`Failed to fetch tasks: ${(error as Error).message}`);
     }
