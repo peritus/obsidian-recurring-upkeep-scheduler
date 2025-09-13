@@ -148,7 +148,11 @@ export class RecurringUpkeepUtils {
       const abstractFile = app.vault.getAbstractFileByPath(filePath);
       if (!abstractFile) throw new Error("File not found");
 
-      const file = abstractFile as TFile;
+      if (!(abstractFile instanceof TFile)) {
+        throw new Error("Path does not point to a file");
+      }
+      const file = abstractFile;
+      
       if (!file.stat) throw new Error("File is not a regular file");
 
       // Get current task data before updating frontmatter
@@ -412,11 +416,15 @@ export class RecurringUpkeepUtils {
 
     // Test 5: Task completed today - THE BUG FIX TEST
     console.log("\n🐛 Test 5: Task completed today (BUG FIX)");
-    const mockFile = {
+    const mockFile: TFile = {
       name: "test-task.md",
       path: "test-task.md",
-      stat: { mtime: Date.now() }
-    } as TFile;
+      stat: { mtime: Date.now(), ctime: Date.now(), size: 0 },
+      basename: "test-task",
+      extension: "md",
+      parent: null,
+      vault: null as any
+    };
     const taskCompletedToday: UpkeepTask = {
       file: mockFile,
       last_done: "2024-01-15",
