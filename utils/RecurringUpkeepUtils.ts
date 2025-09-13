@@ -1,7 +1,32 @@
-import { App, TFile } from 'obsidian';
+import { App, TFile, FrontMatterCache } from 'obsidian';
 import { UpkeepTask, TaskStatus, MarkCompleteResult } from '../types';
 import { DateUtils } from './DateUtils';
 import { I18nUtils } from '../i18n/I18nUtils';
+
+// Type definitions for OS module access (if available)
+interface NodeOS {
+  userInfo(): {
+    username: string;
+  };
+}
+
+// Type definitions for require function (if available in Node environment)
+declare const require: ((id: string) => NodeOS) | undefined;
+
+// Type definitions for Obsidian app with plugins
+interface ObsidianAppWithPlugins extends App {
+  plugins: {
+    plugins: {
+      dataview?: {
+        api: {
+          index: {
+            touch(): void;
+          };
+        };
+      };
+    };
+  };
+}
 
 export class RecurringUpkeepUtils {
   static calculateIntervalInDays(interval: number, intervalUnit: string): number {
@@ -159,7 +184,7 @@ export class RecurringUpkeepUtils {
       let previousLastDone: string | undefined;
       let intervalDays: number = -1; // Default to -1 for missing/invalid frontmatter
       
-      await app.fileManager.processFrontMatter(file, (fm) => {
+      await app.fileManager.processFrontMatter(file, (fm: FrontMatterCache) => {
         previousLastDone = fm.last_done;
         
         // Calculate interval in days
@@ -182,7 +207,8 @@ export class RecurringUpkeepUtils {
       }
 
       setTimeout(() => {
-        const dataview = (app as any).plugins.plugins.dataview;
+        const obsidianApp = app as ObsidianAppWithPlugins;
+        const dataview = obsidianApp.plugins.plugins.dataview;
         if (dataview && dataview.api) {
           dataview.api.index.touch();
         }
@@ -369,7 +395,7 @@ export class RecurringUpkeepUtils {
       }
     };
 
-    const assertEqual = (actual: any, expected: any, message: string) => {
+    const assertEqual = (actual: unknown, expected: unknown, message: string) => {
       const condition = actual === expected;
       if (condition) {
         console.log(`✅ ${message}`);

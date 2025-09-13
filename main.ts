@@ -6,8 +6,50 @@ import { UpkeepStatusView } from './views/UpkeepStatusView';
 import { I18nUtils } from './i18n/I18nUtils';
 import { WidgetEventManager } from './utils/WidgetEventManager';
 
+// Type definitions for Dataview page data
+interface DataviewPage {
+  file: TFile;
+  last_done?: string;
+  interval?: number;
+  interval_unit?: string;
+  complete_early_days?: number;
+  type?: string;
+}
+
+// Type definitions for TFile with tags (extended Obsidian interface)
+interface TFileWithTags extends TFile {
+  tags?: string[];
+}
+
+// Type definitions for Dataview API
+interface DataviewAPI {
+  pages(): {
+    where(predicate: (p: DataviewPage) => boolean): {
+      values: DataviewPage[];
+    };
+  };
+}
+
+// Type definitions for Obsidian plugin system
+interface ObsidianPluginSystem {
+  plugins: {
+    dataview?: {
+      api?: DataviewAPI;
+    };
+  };
+}
+
+// Type definitions for global test runner
+declare global {
+  interface Window {
+    RecurringUpkeepTests?: {
+      runAllTests(): { passed: number; failed: number; total: number };
+    };
+  }
+}
+
 export default class RecurringUpkeepSchedulerPlugin extends Plugin {
-  public dataviewApi: any; // Make this public so views can access it
+  public dataviewApi: DataviewAPI | null = null;
   private widgetEventManager: WidgetEventManager;
 
   async onload() {
@@ -168,8 +210,8 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
   private async runTests() {
     try {
       // Load tests from external file (works in both Node.js and browser)
-      if (typeof window !== 'undefined' && (window as any).RecurringUpkeepTests) {
-        const results = (window as any).RecurringUpkeepTests.runAllTests();
+      if (typeof window !== 'undefined' && window.RecurringUpkeepTests) {
+        const results = window.RecurringUpkeepTests.runAllTests();
 
         if (results.failed > 0) {
           console.error(`❌ ${results.failed} tests failed out of ${results.total}`);
@@ -193,14 +235,16 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
   }
 
   private checkDataviewDependency(): void {
-    const dataviewPlugin = (this.app as any).plugins.plugins.dataview;
+    // Safe access to plugin system using type assertion
+    const pluginSystem = this.app as unknown as { plugins: ObsidianPluginSystem };
+    const dataviewPlugin = pluginSystem.plugins.plugins.dataview;
 
     if (!dataviewPlugin) {
       console.error('Recurring Upkeep Scheduler: Dataview plugin is required but not found');
       return;
     }
 
-    this.dataviewApi = dataviewPlugin.api;
+    this.dataviewApi = dataviewPlugin.api || null;
 
     if (!this.dataviewApi) {
       console.error('Recurring Upkeep Scheduler: Dataview API is not available');
@@ -264,23 +308,25 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
     }
 
     try {
-      const pages = this.dataviewApi.pages().where((p: any) =>
-        p.file.tags?.includes("recurring-task") ||
-        p.file.tags?.includes("#recurring-task") ||
-        p.type === "recurring-task"
-      );
+      const pages = this.dataviewApi.pages().where((p: DataviewPage) => {
+        const fileWithTags = p.file as TFileWithTags;
+        return fileWithTags.tags?.includes("recurring-task") ||
+               fileWithTags.tags?.includes("#recurring-task") ||
+               p.type === "recurring-task";
+      });
 
       const tasks: UpkeepTask[] = [];
 
       for (const page of pages.values) {
+        const fileWithTags = page.file as TFileWithTags;
         const task: UpkeepTask = {
           file: page.file,
           last_done: page.last_done,
-          interval: page.interval,
-          interval_unit: page.interval_unit,
+          interval: page.interval || 0,
+          interval_unit: page.interval_unit || '',
           complete_early_days: page.complete_early_days,
           type: page.type,
-          tags: page.file.tags || []
+          tags: fileWithTags.tags || []
         };
 
         if (task.interval && task.interval_unit) {

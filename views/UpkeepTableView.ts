@@ -1,5 +1,5 @@
 import { App, TFile } from 'obsidian';
-import { ProcessedTask, FilterQuery } from '../types';
+import { ProcessedTask, FilterQuery, UpkeepTask } from '../types';
 import { DateUtils } from '../utils/DateUtils';
 import { CompleteButton } from '../components/CompleteButton';
 import { ProgressBar } from '../components/ProgressBar';
@@ -8,6 +8,35 @@ import { FilterParser } from './FilterParser';
 import { I18nUtils } from '../i18n/I18nUtils';
 import { WidgetEventManager } from '../utils/WidgetEventManager';
 import { TaskStyling } from '../utils/TaskStyling';
+
+// Type definitions for TFile with tags (extended Obsidian interface)
+interface TFileWithTags extends TFile {
+  tags?: string[];
+}
+
+// Type definitions for Dataview page data
+interface DataviewPage {
+  file: TFile;
+  last_done?: string;
+  interval?: number;
+  interval_unit?: string;
+  complete_early_days?: number;
+  type?: string;
+}
+
+// Type definitions for Dataview API
+interface DataviewAPI {
+  pages(): {
+    where(predicate: (p: DataviewPage) => boolean): {
+      values: DataviewPage[];
+    };
+  };
+}
+
+// Type definitions for plugin access
+interface PluginWithDataview {
+  dataviewApi?: DataviewAPI;
+}
 
 export class UpkeepTableView {
   private app: App;
@@ -100,29 +129,40 @@ export class UpkeepTableView {
   }
 
   private async getUpkeepTasks(): Promise<ProcessedTask[]> {
-    // Get the main plugin instance through the app
-    const plugin = (this.app as any).plugins.plugins['recurring-upkeep-scheduler'];
+    // Get the main plugin instance through the app with safe type casting
+    const pluginSystem = this.app as unknown as { 
+      plugins: { 
+        plugins: { 
+          'recurring-upkeep-scheduler'?: PluginWithDataview 
+        } 
+      } 
+    };
+    
+    const plugin = pluginSystem.plugins.plugins['recurring-upkeep-scheduler'];
+    
     if (!plugin || !plugin.dataviewApi) {
       throw new Error('Plugin or Dataview API not available');
     }
 
     try {
-      const pages = plugin.dataviewApi.pages().where((p: any) =>
-        p.file.tags?.includes("recurring-task") ||
-        p.file.tags?.includes("#recurring-task") ||
-        p.type === "recurring-task"
-      );
+      const pages = plugin.dataviewApi.pages().where((p: DataviewPage) => {
+        const fileWithTags = p.file as TFileWithTags;
+        return fileWithTags.tags?.includes("recurring-task") ||
+               fileWithTags.tags?.includes("#recurring-task") ||
+               p.type === "recurring-task";
+      });
 
-      const tasks = [];
+      const tasks: UpkeepTask[] = [];
       for (const page of pages.values) {
-        const task = {
+        const fileWithTags = page.file as TFileWithTags;
+        const task: UpkeepTask = {
           file: page.file,
           last_done: page.last_done,
-          interval: page.interval,
-          interval_unit: page.interval_unit,
+          interval: page.interval || 0,
+          interval_unit: page.interval_unit || '',
           complete_early_days: page.complete_early_days,
           type: page.type,
-          tags: page.file.tags || []
+          tags: fileWithTags.tags || []
         };
 
         if (task.interval && task.interval_unit) {

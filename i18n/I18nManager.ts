@@ -3,6 +3,15 @@ import { LocaleDefinition, LocaleKey, I18nOptions } from './types';
 import { en } from './locales/en';
 import { de } from './locales/de';
 
+// Type definitions for accessing Obsidian app configuration
+interface VaultConfig {
+  userLocale?: string;
+}
+
+interface ObsidianVaultWithConfig {
+  config?: VaultConfig;
+}
+
 export class I18nManager {
   private app: App;
   private currentLocale: LocaleKey;
@@ -25,9 +34,11 @@ export class I18nManager {
 
     // Try to detect from Obsidian's locale
     try {
-      const obsidianLocale = (this.app as any).vault?.config?.userLocale ||
-                           localStorage.getItem('language') ||
-                           navigator.language ||
+      // Safe access to Obsidian's vault configuration using type assertion
+      const vaultWithConfig = this.app.vault as unknown as ObsidianVaultWithConfig;
+      const obsidianLocale = vaultWithConfig.config?.userLocale ||
+                           this.getStorageLocale() ||
+                           this.getNavigatorLocale() ||
                            'en';
 
       // Map common locale codes to our supported locales
@@ -40,6 +51,22 @@ export class I18nManager {
     }
 
     return this.fallbackLocale;
+  }
+
+  private getStorageLocale(): string | null {
+    try {
+      return localStorage.getItem('language');
+    } catch {
+      return null;
+    }
+  }
+
+  private getNavigatorLocale(): string | null {
+    try {
+      return navigator.language;
+    } catch {
+      return null;
+    }
   }
 
   /**

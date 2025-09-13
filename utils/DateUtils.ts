@@ -1,14 +1,20 @@
 import { DateFormatOptions } from '../types';
 
+// Type definitions for date inputs
+type DateInput = string | Date | null | undefined | {
+  toString(): string;
+  toFormat?(format: string): string;
+};
+
 export class DateUtils {
-  static parseLocalDate(dateInput: any): Date {
+  static parseLocalDate(dateInput: DateInput): Date {
     if (!dateInput) {
       return new Date(NaN);
     }
 
-    if (dateInput && typeof dateInput === 'object' && dateInput.toString) {
+    if (dateInput && typeof dateInput === 'object' && 'toString' in dateInput) {
       try {
-        if (typeof dateInput.toFormat === 'function') {
+        if ('toFormat' in dateInput && typeof dateInput.toFormat === 'function') {
           dateInput = dateInput.toFormat('yyyy-MM-dd');
         } else if (dateInput instanceof Date) {
           dateInput = dateInput.toISOString().split('T')[0];

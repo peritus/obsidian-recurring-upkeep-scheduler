@@ -1,5 +1,11 @@
 import { FilterQuery, ProcessedTask } from '../types';
 
+// Type for valid status values
+type ValidStatus = 'all' | 'due' | 'overdue' | 'due-soon' | 'up-to-date' | 'never';
+
+// Type for valid sort values  
+type ValidSort = 'due-date' | 'status' | 'name';
+
 export class FilterParser {
   static parse(query: string): FilterQuery {
     const filter: FilterQuery = {};
@@ -58,8 +64,8 @@ export class FilterParser {
   private static addFilterValue(key: string, value: string, filter: FilterQuery): void {
     switch (key) {
       case 'status':
-        if (['all', 'due', 'overdue', 'due-soon', 'up-to-date', 'never'].includes(value)) {
-          this.addToFilterArray(filter, 'status', value as any);
+        if (this.isValidStatus(value)) {
+          this.addToFilterArray(filter, 'status', value);
         }
         break;
       case 'tag':
@@ -75,42 +81,45 @@ export class FilterParser {
         }
         break;
       case 'sort':
-        if (['due-date', 'status', 'name'].includes(value)) {
-          filter.sort = value as FilterQuery['sort'];
+        if (this.isValidSort(value)) {
+          filter.sort = value;
         }
         break;
     }
   }
 
+  private static isValidStatus(value: string): value is ValidStatus {
+    return ['all', 'due', 'overdue', 'due-soon', 'up-to-date', 'never'].includes(value);
+  }
+
+  private static isValidSort(value: string): value is ValidSort {
+    return ['due-date', 'status', 'name'].includes(value);
+  }
+
   private static addSimpleStatus(status: string, filter: FilterQuery): void {
-    switch (status) {
-      case 'due':
-      case 'overdue':
-      case 'due-soon':
-      case 'up-to-date':
-      case 'never':
-      case 'all':
-        this.addToFilterArray(filter, 'status', status as any);
-        break;
+    if (this.isValidStatus(status)) {
+      this.addToFilterArray(filter, 'status', status);
     }
   }
 
   private static addToFilterArray<K extends keyof FilterQuery>(
     filter: FilterQuery,
     key: K,
-    value: any
+    value: NonNullable<FilterQuery[K]> extends (infer U)[] ? U : NonNullable<FilterQuery[K]>
   ): void {
     const currentValue = filter[key];
 
     if (currentValue === undefined) {
-      filter[key] = value as any;
+      // TypeScript assertion here is safe because we know the value matches the expected type
+      (filter[key] as any) = value;
     } else if (Array.isArray(currentValue)) {
-      if (!currentValue.includes(value)) {
-        currentValue.push(value);
+      if (!currentValue.includes(value as any)) {
+        currentValue.push(value as any);
       }
     } else {
       if (currentValue !== value) {
-        filter[key] = [currentValue, value] as any;
+        // TypeScript assertion here is safe because we're creating a valid array
+        (filter[key] as any) = [currentValue, value];
       }
     }
   }
@@ -175,15 +184,24 @@ export class FilterParser {
           break;
         case 'status':
           filteredTasks.sort((a, b) => {
-            const statusOrder = { 'overdue': 0, 'due': 1, 'due-soon': 2, 'up-to-date': 3, 'never': 4 };
-            const aOrder = statusOrder[a.status.includes('Overdue') ? 'overdue' :
-                                       a.status.includes('Due today') ? 'due' :
-                                       a.status.includes('Due in') ? 'due-soon' :
-                                       a.status.includes('Never') ? 'never' : 'up-to-date'] || 5;
-            const bOrder = statusOrder[b.status.includes('Overdue') ? 'overdue' :
-                                       b.status.includes('Due today') ? 'due' :
-                                       b.status.includes('Due in') ? 'due-soon' :
-                                       b.status.includes('Never') ? 'never' : 'up-to-date'] || 5;
+            const statusOrder: Record<string, number> = { 
+              'overdue': 0, 
+              'due': 1, 
+              'due-soon': 2, 
+              'up-to-date': 3, 
+              'never': 4 
+            };
+            
+            const getStatusCategory = (status: string): string => {
+              if (status.includes('Overdue')) return 'overdue';
+              if (status.includes('Due today')) return 'due';
+              if (status.includes('Due in')) return 'due-soon';
+              if (status.includes('Never')) return 'never';
+              return 'up-to-date';
+            };
+            
+            const aOrder = statusOrder[getStatusCategory(a.status)] ?? 5;
+            const bOrder = statusOrder[getStatusCategory(b.status)] ?? 5;
             return aOrder - bOrder;
           });
           break;
@@ -194,6 +212,7 @@ export class FilterParser {
             if (a.calculatedNextDue && !b.calculatedNextDue) return 1;
             if (!a.calculatedNextDue && !b.calculatedNextDue) return 0;
 
+            // Safe null check before creating Date objects - use non-null assertion since we checked above
             const dateA = new Date(a.calculatedNextDue!);
             const dateB = new Date(b.calculatedNextDue!);
 
