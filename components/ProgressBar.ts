@@ -26,7 +26,9 @@ export class ProgressBar {
     const colorClass = TaskStyling.getProgressClass(task, currentTime);
     const tooltip = TaskStyling.getProgressTooltip(task, currentTime);
 
-    progress.style.width = `${percentage}%`;
+    // Set progress width using CSS custom property instead of inline styles
+    progress.style.setProperty('--progress-width', `${percentage}%`);
+    progress.setAttribute('data-width', percentage.toString());
     progress.addClasses([colorClass]);
     progress.title = tooltip;
   }

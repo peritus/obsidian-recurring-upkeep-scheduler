@@ -312,6 +312,12 @@
   cursor: help;
 }
 
+/* Progress bar width - dynamic width control */
+.recurring-upkeep-progress-bar[data-width] {
+  /* Width will be set via CSS custom property */
+  width: var(--progress-width, 0%);
+}
+
 /* Error messages */
 .recurring-upkeep-error {
   color: #d32f2f;

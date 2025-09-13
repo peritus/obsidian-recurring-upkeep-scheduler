@@ -233,17 +233,7 @@ export class DateUtils {
         element.title = `${prefix}: ${formattedDate}`;
       }
 
-      // Use addClasses if available, otherwise use classList
-      if ('addClasses' in element) {
-        (element as any).addClasses(['recurring-upkeep-tooltip']);
-      } else if (element.classList && element.classList.add) {
-        element.classList.add('recurring-upkeep-tooltip');
-      }
-
-      // Set cursor style for tooltip indication
-      if (element.style) {
-        element.style.cursor = 'help';
-      }
+      element.classList.add('recurring-upkeep-tooltip');
     }
   }
 }

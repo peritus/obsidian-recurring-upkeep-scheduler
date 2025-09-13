@@ -183,10 +183,7 @@ export class I18nUtils {
       element.title = this.t.help.dateTooltip(tooltipPrefix, formattedDate);
     }
 
-    // Set cursor style for tooltip indication
-    if (element.style) {
-      element.style.cursor = 'help';
-    }
+    element.classList.add('recurring-upkeep-tooltip');
   }
 
   /**
