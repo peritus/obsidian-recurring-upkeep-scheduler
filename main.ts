@@ -113,28 +113,52 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
     const footerCell = document.createElement('td');
     footerCell.setAttribute('colspan', colCount.toString());
     
-    footerCell.innerHTML = `
-      <div class="recurring-upkeep-stats-dashboard">
-        <div class="recurring-upkeep-stats-header">
-          <h3>📊 Maintenance Statistics</h3>
-          <span class="recurring-upkeep-stats-period">Last 12 months</span>
-        </div>
-        <div class="recurring-upkeep-stats-grid">
-          <div class="recurring-upkeep-stat-card">
-            <span class="recurring-upkeep-stat-value">${totalCompletions}</span>
-            <div class="recurring-upkeep-stat-label">Total Completions</div>
-          </div>
-          <div class="recurring-upkeep-stat-card">
-            <span class="recurring-upkeep-stat-value">${avgDaysBetween}</span>
-            <div class="recurring-upkeep-stat-label">Avg Days Between</div>
-          </div>
-          <div class="recurring-upkeep-stat-card">
-            <span class="recurring-upkeep-stat-value">${onTimeRate}%</span>
-            <div class="recurring-upkeep-stat-label">On-Time Rate</div>
-          </div>
-        </div>
-      </div>
-    `;
+    // Create dashboard using DOM API instead of innerHTML for security
+    const dashboard = footerCell.createEl('div', { cls: 'recurring-upkeep-stats-dashboard' });
+    
+    // Create header section
+    const header = dashboard.createEl('div', { cls: 'recurring-upkeep-stats-header' });
+    header.createEl('h3', { text: '📊 Maintenance Statistics' });
+    header.createEl('span', { 
+      text: 'Last 12 months', 
+      cls: 'recurring-upkeep-stats-period' 
+    });
+    
+    // Create stats grid
+    const grid = dashboard.createEl('div', { cls: 'recurring-upkeep-stats-grid' });
+    
+    // Total Completions card
+    const totalCard = grid.createEl('div', { cls: 'recurring-upkeep-stat-card' });
+    totalCard.createEl('span', { 
+      text: totalCompletions.toString(), 
+      cls: 'recurring-upkeep-stat-value' 
+    });
+    totalCard.createEl('div', { 
+      text: 'Total Completions', 
+      cls: 'recurring-upkeep-stat-label' 
+    });
+    
+    // Average Days Between card
+    const avgCard = grid.createEl('div', { cls: 'recurring-upkeep-stat-card' });
+    avgCard.createEl('span', { 
+      text: avgDaysBetween.toString(), 
+      cls: 'recurring-upkeep-stat-value' 
+    });
+    avgCard.createEl('div', { 
+      text: 'Avg Days Between', 
+      cls: 'recurring-upkeep-stat-label' 
+    });
+    
+    // On-Time Rate card
+    const rateCard = grid.createEl('div', { cls: 'recurring-upkeep-stat-card' });
+    rateCard.createEl('span', { 
+      text: `${onTimeRate}%`, 
+      cls: 'recurring-upkeep-stat-value' 
+    });
+    rateCard.createEl('div', { 
+      text: 'On-Time Rate', 
+      cls: 'recurring-upkeep-stat-label' 
+    });
 
     footerRow.appendChild(footerCell);
     tfoot.appendChild(footerRow);
