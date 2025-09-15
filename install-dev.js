@@ -125,8 +125,18 @@ function buildAndInstall() {
         fs.writeFileSync(path.join(pluginDir, 'manifest.json'), devManifestContent);
         console.log('   ✓ Copied dev manifest.json');
         
+        // Create .hotreload marker file for hot-reload plugin support
+        try {
+            const hotreloadPath = path.join(pluginDir, '.hotreload');
+            fs.writeFileSync(hotreloadPath, '');
+            console.log('   ✓ Created .hotreload for hot-reload support');
+        } catch (error) {
+            console.error(`Warning: Could not create .hotreload file: ${error.message}`);
+        }
+        
         console.log('✅ Installed dev build successfully!');
         console.log(`   Plugin directory: ${pluginDir}`);
+        console.log('   💡 This plugin will be automatically reloaded when files change');
         
     } catch (error) {
         console.error('❌ Build and install failed:', error.message);
