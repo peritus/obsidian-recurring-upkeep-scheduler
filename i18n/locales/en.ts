@@ -85,7 +85,6 @@ export const en: LocaleDefinition = {
         lastDone: 'last_done: Last completion date (YYYY-MM-DD)',
         interval: 'interval: How often (number)',
         intervalUnit: 'interval_unit: days, weeks, months, or years',
-        completeEarlyDays: 'complete_early_days: Days before due to allow completion (optional)',
       },
       noTasks: 'No recurring tasks found',
       noTasksFilter: 'No tasks found matching the current filter.',

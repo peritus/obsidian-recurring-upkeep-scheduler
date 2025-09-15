@@ -135,7 +135,6 @@ export class UpkeepStatusView {
         last_done: frontmatter.last_done,
         interval: frontmatter.interval,
         interval_unit: frontmatter.interval_unit,
-        complete_early_days: frontmatter.complete_early_days,
         type: frontmatter.type,
         tags: frontmatter.tags || []
       };
@@ -296,7 +295,6 @@ tags:
 last_done: 2024-01-15
 interval: 1
 interval_unit: months
-complete_early_days: 7
 ---`;
 
     // Localized field descriptions - using CSS classes instead of inline styles
@@ -309,8 +307,7 @@ complete_early_days: 7
       t.ui.messages.setupFields.tags,
       t.ui.messages.setupFields.lastDone,
       t.ui.messages.setupFields.interval,
-      t.ui.messages.setupFields.intervalUnit,
-      t.ui.messages.setupFields.completeEarlyDays
+      t.ui.messages.setupFields.intervalUnit
     ];
 
     const fieldList = fieldDescription.createEl('ul', {

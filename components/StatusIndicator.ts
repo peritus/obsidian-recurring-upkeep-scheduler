@@ -31,7 +31,6 @@ export class StatusIndicator {
       task.interval,
       task.interval_unit
     );
-    const completeEarlyDays = RecurringUpkeepUtils.getCompleteEarlyDays(task);
 
     // Use centralized styling instead of hardcoded color
     primaryElement.textContent = task.status;
@@ -65,10 +64,6 @@ export class StatusIndicator {
       secondaryElement.textContent = I18nUtils.t.ui.statusText.taskLastDone(frequencyDesc, relativeDate);
       I18nUtils.addDateTooltip(secondaryElement, task.last_done, I18nUtils.t.ui.labels.lastDone, now);
     } else if (task.daysRemaining === 0) {
-      const relativeDate = I18nUtils.formatRelativeDate(task.last_done, now);
-      secondaryElement.textContent = I18nUtils.t.ui.statusText.taskLastDone(frequencyDesc, relativeDate);
-      I18nUtils.addDateTooltip(secondaryElement, task.last_done, I18nUtils.t.ui.labels.lastDone, now);
-    } else if (task.daysRemaining <= completeEarlyDays) {
       const relativeDate = I18nUtils.formatRelativeDate(task.last_done, now);
       secondaryElement.textContent = I18nUtils.t.ui.statusText.taskLastDone(frequencyDesc, relativeDate);
       I18nUtils.addDateTooltip(secondaryElement, task.last_done, I18nUtils.t.ui.labels.lastDone, now);

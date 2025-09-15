@@ -86,7 +86,6 @@ export interface LocaleDefinition {
         lastDone: string;
         interval: string;
         intervalUnit: string;
-        completeEarlyDays: string;
       };
       noTasks: string;
       noTasksFilter: string;

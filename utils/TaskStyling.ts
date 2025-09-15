@@ -127,25 +127,19 @@ export class TaskStyling {
     // Negative or zero days remaining = overdue (red)
     // Positive days remaining = up to date (green)
     const daysRemaining = task.daysRemaining;
-    const completeEarlyDays = RecurringUpkeepUtils.getCompleteEarlyDays(task);
 
-    // If task can be completed early (within completion window), show as overdue
-    if (daysRemaining <= completeEarlyDays) {
+    // If task is overdue (daysRemaining <= 0), show as overdue
+    if (daysRemaining <= 0) {
       if (daysRemaining < 0) {
         const daysOverdue = Math.abs(daysRemaining);
         return {
           statusClass: 'recurring-upkeep-overdue',
           tooltip: `Overdue by ${daysOverdue} ${daysOverdue === 1 ? 'day' : 'days'}`
         };
-      } else if (daysRemaining === 0) {
-        return {
-          statusClass: 'recurring-upkeep-overdue',
-          tooltip: "Due today"
-        };
       } else {
         return {
           statusClass: 'recurring-upkeep-overdue',
-          tooltip: `Due in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}`
+          tooltip: "Due today"
         };
       }
     }
@@ -173,9 +167,8 @@ export class TaskStyling {
       return false;
     }
 
-    // Tasks can be completed if they're within the early completion window
-    const completeEarlyDays = RecurringUpkeepUtils.getCompleteEarlyDays(task);
-    return task.daysRemaining <= completeEarlyDays;
+    // Only overdue tasks (daysRemaining <= 0) can be completed
+    return task.daysRemaining <= 0;
   }
 
   /**

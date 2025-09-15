@@ -26,12 +26,6 @@ class TestableRecurringUpkeepUtils {
     return Number(interval);
   }
 
-  static getCompleteEarlyDays(task) {
-    const earlyDays = task.complete_early_days || task.complete_early_days === 0 ?
-      Number(task.complete_early_days) : 7;
-    return Math.max(0, earlyDays);
-  }
-
   static getFrequencyDescription(interval, intervalUnit) {
     const normalizedUnit = intervalUnit?.toLowerCase();
 
@@ -200,7 +194,6 @@ class TestableRecurringUpkeepUtils {
       };
     }
 
-    const completeEarlyDays = this.getCompleteEarlyDays(task);
     const nextDue = this.calculateNextDueDate(task.last_done, task.interval, task.interval_unit);
     const daysRemaining = this.calculateDaysRemaining(nextDue, now);
 
@@ -218,7 +211,8 @@ class TestableRecurringUpkeepUtils {
       };
     }
 
-    isEligibleForCompletion = daysRemaining <= completeEarlyDays;
+    // Simple logic: only overdue tasks (daysRemaining <= 0) can be completed
+    isEligibleForCompletion = daysRemaining <= 0;
 
     // Binary decision - if eligible for completion, show as overdue
     // Otherwise, show as up to date
@@ -235,8 +229,7 @@ class TestableRecurringUpkeepUtils {
       statusColor,
       daysRemaining,
       isEligibleForCompletion,
-      calculatedNextDue: nextDue,
-      completeEarlyDays
+      calculatedNextDue: nextDue
     };
   }
 
@@ -577,13 +570,6 @@ function runAllTests() {
   assertEqual(TestableRecurringUpkeepUtils.calculateIntervalInDays(1, "months"), 30, "Should handle plural 'months'");
   assertEqual(TestableRecurringUpkeepUtils.calculateIntervalInDays(2, "week"), 14, "Should handle singular 'week'");
   assertEqual(TestableRecurringUpkeepUtils.calculateIntervalInDays(2, "weeks"), 14, "Should handle plural 'weeks'");
-
-  // Test 10: Per-task complete early days
-  console.log("\n⚙️ Test 10: Per-task complete early days");
-  assertEqual(TestableRecurringUpkeepUtils.getCompleteEarlyDays({complete_early_days: 5}), 5, "Should use specified complete_early_days");
-  assertEqual(TestableRecurringUpkeepUtils.getCompleteEarlyDays({complete_early_days: 0}), 0, "Should allow 0 days early completion");
-  assertEqual(TestableRecurringUpkeepUtils.getCompleteEarlyDays({complete_early_days: -3}), 0, "Should enforce minimum of 0 days");
-  assertEqual(TestableRecurringUpkeepUtils.getCompleteEarlyDays({}), 7, "Should default to 7 days when not specified");
 
   // Run completion history tests
   const historyResults = CompletionHistoryTests.runTests();

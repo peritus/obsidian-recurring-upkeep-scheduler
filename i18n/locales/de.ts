@@ -85,7 +85,6 @@ export const de: LocaleDefinition = {
         lastDone: 'last_done: Datum der letzten Erledigung (YYYY-MM-DD)',
         interval: 'interval: Wie oft (Zahl)',
         intervalUnit: 'interval_unit: days, weeks, months, oder years',
-        completeEarlyDays: 'complete_early_days: Tage vor Fälligkeit für vorzeitige Erledigung (optional)',
       },
       noTasks: 'Keine wiederkehrenden Aufgaben gefunden',
       noTasksFilter: 'Keine Aufgaben entsprechen dem aktuellen Filter.',

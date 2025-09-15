@@ -14,7 +14,6 @@ interface DataviewPage {
   last_done?: string;
   interval?: number;
   interval_unit?: string;
-  complete_early_days?: number;
   type?: string;
 }
 
@@ -351,7 +350,6 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
           last_done: page.last_done,
           interval: page.interval || 0,
           interval_unit: page.interval_unit || '',
-          complete_early_days: page.complete_early_days,
           type: page.type,
           tags: fileWithTags.tags || []
         };

@@ -65,31 +65,6 @@ export class RecurringUpkeepUtils {
     return result;
   }
 
-  static getCompleteEarlyDays(task: UpkeepTask): number {
-    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-      console.debug('[Recurring Upkeep] Getting complete early days', {
-        taskName: task.file?.name,
-        completeEarlyDays: task.complete_early_days,
-        completeEarlyDaysType: typeof task.complete_early_days
-      });
-    }
-
-    const earlyDays = task.complete_early_days || task.complete_early_days === 0 ?
-      Number(task.complete_early_days) : 7;
-    const result = Math.max(0, earlyDays);
-
-    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-      console.debug('[Recurring Upkeep] Complete early days calculated', {
-        taskName: task.file?.name,
-        rawValue: task.complete_early_days,
-        defaultedValue: earlyDays,
-        result
-      });
-    }
-
-    return result;
-  }
-
   static getFrequencyDescription(interval: number, intervalUnit: string): string {
     if (RECURRING_UPKEEP_LOGGING_ENABLED) {
       console.debug('[Recurring Upkeep] Getting frequency description', {
@@ -177,8 +152,6 @@ export class RecurringUpkeepUtils {
       return result;
     }
 
-    const completeEarlyDays = this.getCompleteEarlyDays(task);
-
     const nextDue = DateUtils.calculateNextDueDate(task.last_done, task.interval, task.interval_unit);
     const daysRemaining = DateUtils.calculateDaysRemaining(nextDue || "", now);
 
@@ -186,8 +159,7 @@ export class RecurringUpkeepUtils {
       console.debug('[Recurring Upkeep] Task status calculations', {
         taskName: task.file?.name,
         nextDue,
-        daysRemaining,
-        completeEarlyDays
+        daysRemaining
       });
     }
 
@@ -215,7 +187,8 @@ export class RecurringUpkeepUtils {
       return result;
     }
 
-    isEligibleForCompletion = daysRemaining <= completeEarlyDays;
+    // Simple logic: only overdue tasks (daysRemaining <= 0) can be completed
+    isEligibleForCompletion = daysRemaining <= 0;
 
     // Binary decision - if eligible for completion, show as overdue
     // Otherwise, show as up to date
@@ -229,8 +202,7 @@ export class RecurringUpkeepUtils {
       status,
       daysRemaining,
       isEligibleForCompletion,
-      calculatedNextDue: nextDue,
-      completeEarlyDays
+      calculatedNextDue: nextDue
     };
 
     if (RECURRING_UPKEEP_LOGGING_ENABLED) {
@@ -717,13 +689,6 @@ export class RecurringUpkeepUtils {
     assertEqual(this.calculateIntervalInDays(1, "months"), 30, "Should handle plural 'months'");
     assertEqual(this.calculateIntervalInDays(2, "week"), 14, "Should handle singular 'week'");
     assertEqual(this.calculateIntervalInDays(2, "weeks"), 14, "Should handle plural 'weeks'");
-
-    // Test 10: Per-task complete early days
-    console.log("\n⚙️ Test 10: Per-task complete early days");
-    assertEqual(this.getCompleteEarlyDays({complete_early_days: 5} as UpkeepTask), 5, "Should use specified complete_early_days");
-    assertEqual(this.getCompleteEarlyDays({complete_early_days: 0} as UpkeepTask), 0, "Should allow 0 days early completion");
-    assertEqual(this.getCompleteEarlyDays({complete_early_days: -3} as UpkeepTask), 0, "Should enforce minimum of 0 days");
-    assertEqual(this.getCompleteEarlyDays({} as UpkeepTask), 7, "Should default to 7 days when not specified");
 
     // Test 11: Days since decimal formatting
     console.log("\n🔢 Test 11: Days since decimal formatting");

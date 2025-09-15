@@ -5,7 +5,6 @@ export interface UpkeepTask {
   last_done?: string;
   interval: number;
   interval_unit: string;
-  complete_early_days?: number;
   type?: string;
   tags?: string[];
   [key: string]: any;
@@ -16,7 +15,6 @@ export interface TaskStatus {
   daysRemaining: number;
   isEligibleForCompletion: boolean;
   calculatedNextDue: string | null;
-  completeEarlyDays?: number;
 }
 
 export interface ProcessedTask extends UpkeepTask, TaskStatus {}
