@@ -161,7 +161,7 @@ export class RecurringUpkeepUtils {
 
     if (!task.last_done || task.last_done === "" || task.last_done === "never") {
       const result = {
-        status: this.getLocalizedNeverCompleted(),
+        status: this.getLocalizedOverdue(),
         daysRemaining: -9999,
         isEligibleForCompletion: true,
         calculatedNextDue: null
@@ -217,12 +217,10 @@ export class RecurringUpkeepUtils {
 
     isEligibleForCompletion = daysRemaining <= completeEarlyDays;
 
-    if (daysRemaining < 0) {
-      status = this.getLocalizedOverdue(Math.abs(daysRemaining));
-    } else if (daysRemaining === 0) {
-      status = this.getLocalizedDueToday();
-    } else if (daysRemaining <= 7) {
-      status = this.getLocalizedDueSoon(daysRemaining);
+    // Binary decision - if eligible for completion, show as overdue
+    // Otherwise, show as up to date
+    if (isEligibleForCompletion) {
+      status = this.getLocalizedOverdue();
     } else {
       status = this.getLocalizedUpToDate();
     }
@@ -246,11 +244,11 @@ export class RecurringUpkeepUtils {
   }
 
   // Helper methods with fallbacks for when i18n is not available
-  private static getLocalizedNeverCompleted(): string {
+  private static getLocalizedOverdue(): string {
     try {
-      return I18nUtils.t.status.neverCompleted;
+      return "⚠️ Overdue";
     } catch {
-      return "⚠️ Never completed";
+      return "⚠️ Overdue";
     }
   }
 
@@ -259,30 +257,6 @@ export class RecurringUpkeepUtils {
       return I18nUtils.t.status.upToDate;
     } catch {
       return "✅ Up to date";
-    }
-  }
-
-  private static getLocalizedDueToday(): string {
-    try {
-      return I18nUtils.t.status.dueToday;
-    } catch {
-      return "⏰ Due today";
-    }
-  }
-
-  private static getLocalizedOverdue(days: number): string {
-    try {
-      return I18nUtils.formatOverdue(days);
-    } catch {
-      return `⚠️ Overdue by ${days} ${days === 1 ? 'day' : 'days'}`;
-    }
-  }
-
-  private static getLocalizedDueSoon(days: number): string {
-    try {
-      return I18nUtils.formatDueSoon(days);
-    } catch {
-      return `⏰ Due in ${days} ${days === 1 ? 'day' : 'days'}`;
     }
   }
 
@@ -720,7 +694,7 @@ export class RecurringUpkeepUtils {
       interval_unit: "days"
     };
     const statusNever = this.determineTaskStatus(neverDoneTask, "2024-01-15");
-    assertEqual(statusNever.status, "⚠️ Never completed", "Should show never completed status");
+    assertEqual(statusNever.status, "⚠️ Overdue", "Should show overdue status");
     assertEqual(statusNever.daysRemaining, -9999, "Never done task should have -9999 days remaining");
     assert(statusNever.isEligibleForCompletion, "Never done task should be eligible for completion");
 

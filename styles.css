@@ -231,41 +231,23 @@
 }
 
 /* ========================================
-   TASK STATUS COLORS (Semantic Classes)
+   TASK STATUS COLORS
    ======================================== */
 
-/* Never completed - bright red for attention */
-.recurring-upkeep-never-completed {
-  color: #d32f2f;
-  font-weight: bold;
-}
-
-/* Overdue - red for urgency */
+/* Overdue - red for tasks that need attention */
 .recurring-upkeep-overdue {
   color: #d32f2f;
   font-weight: bold;
 }
 
-/* Due today - orange for immediate attention */
-.recurring-upkeep-due-today {
-  color: #ed6c02;
-  font-weight: bold;
-}
-
-/* Due soon (1-7 days) - orange for upcoming attention */
-.recurring-upkeep-due-soon {
-  color: #ed6c02;
-  font-weight: bold;
-}
-
-/* Up to date - green for good status */
+/* Up to date - green for completed/current tasks */
 .recurring-upkeep-up-to-date {
   color: #2e7d32;
   font-weight: normal;
 }
 
 /* ========================================
-   PROGRESS BAR COLORS (Semantic Classes)
+   PROGRESS BAR COLORS
    ======================================== */
 
 /* Progress bar wrapper */
@@ -283,34 +265,14 @@
   transition: width 0.3s ease;
 }
 
-/* Never completed - bright red */
-.recurring-upkeep-progress-never-completed {
-  background-color: #d32f2f;
-}
-
 /* Overdue - red */
 .recurring-upkeep-progress-overdue {
   background-color: #d32f2f;
 }
 
-/* Due today - orange */
-.recurring-upkeep-progress-due-today {
-  background-color: #ed6c02;
-}
-
-/* Due soon - orange */
-.recurring-upkeep-progress-due-soon {
-  background-color: #ed6c02;
-}
-
 /* Up to date - green */
 .recurring-upkeep-progress-up-to-date {
   background-color: #2e7d32;
-}
-
-/* Unknown/error state - gray */
-.recurring-upkeep-progress-unknown {
-  background-color: #9e9e9e;
 }
 
 /* ========================================
@@ -577,10 +539,7 @@
 
 /* CSS Custom Properties for easy theming */
 :root {
-  --task-never-completed-color: #d32f2f;
   --task-overdue-color: #d32f2f;
-  --task-due-today-color: #ed6c02;
-  --task-due-soon-color: #ed6c02;
   --task-up-to-date-color: #2e7d32;
   
   /* Button colors for theming */
@@ -595,20 +554,8 @@
 }
 
 /* Theme-aware status colors */
-.recurring-upkeep-never-completed {
-  color: var(--task-never-completed-color);
-}
-
 .recurring-upkeep-overdue {
   color: var(--task-overdue-color);
-}
-
-.recurring-upkeep-due-today {
-  color: var(--task-due-today-color);
-}
-
-.recurring-upkeep-due-soon {
-  color: var(--task-due-soon-color);
 }
 
 .recurring-upkeep-up-to-date {
@@ -616,20 +563,8 @@
 }
 
 /* Theme-aware progress bar colors */
-.recurring-upkeep-progress-never-completed {
-  background-color: var(--task-never-completed-color);
-}
-
 .recurring-upkeep-progress-overdue {
   background-color: var(--task-overdue-color);
-}
-
-.recurring-upkeep-progress-due-today {
-  background-color: var(--task-due-today-color);
-}
-
-.recurring-upkeep-progress-due-soon {
-  background-color: var(--task-due-soon-color);
 }
 
 .recurring-upkeep-progress-up-to-date {
@@ -722,15 +657,8 @@
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-  .recurring-upkeep-never-completed,
   .recurring-upkeep-overdue {
     color: #ff0000;
-    font-weight: bold;
-  }
-
-  .recurring-upkeep-due-today,
-  .recurring-upkeep-due-soon {
-    color: #ff8800;
     font-weight: bold;
   }
 

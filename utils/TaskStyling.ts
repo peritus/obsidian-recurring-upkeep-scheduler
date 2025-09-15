@@ -2,20 +2,14 @@ import { ProcessedTask } from '../types';
 import { RecurringUpkeepUtils } from './RecurringUpkeepUtils';
 import { RECURRING_UPKEEP_LOGGING_ENABLED } from '../constants';
 
+// Task status and progress bar CSS classes
 export type TaskStatusClass = 
-  | 'recurring-upkeep-never-completed'
-  | 'recurring-upkeep-overdue' 
-  | 'recurring-upkeep-due-today'
-  | 'recurring-upkeep-due-soon'
+  | 'recurring-upkeep-overdue'
   | 'recurring-upkeep-up-to-date';
 
 export type TaskProgressClass = 
-  | 'recurring-upkeep-progress-never-completed'
   | 'recurring-upkeep-progress-overdue'
-  | 'recurring-upkeep-progress-due-today' 
-  | 'recurring-upkeep-progress-due-soon'
-  | 'recurring-upkeep-progress-up-to-date'
-  | 'recurring-upkeep-progress-unknown';
+  | 'recurring-upkeep-progress-up-to-date';
 
 /**
  * Centralized function to determine task status styling
@@ -28,7 +22,7 @@ export class TaskStyling {
   
   /**
    * Get the CSS class for status text color
-   * This method determines the semantic status based on task state
+   * Determines the semantic status based on task state
    */
   static getStatusClass(task: ProcessedTask): TaskStatusClass {
     if (RECURRING_UPKEEP_LOGGING_ENABLED) {
@@ -68,23 +62,14 @@ export class TaskStyling {
     // Map status classes to progress classes
     let result: TaskProgressClass;
     switch (statusInfo.statusClass) {
-      case 'recurring-upkeep-never-completed':
-        result = 'recurring-upkeep-progress-never-completed';
-        break;
       case 'recurring-upkeep-overdue':
         result = 'recurring-upkeep-progress-overdue';
-        break;
-      case 'recurring-upkeep-due-today':
-        result = 'recurring-upkeep-progress-due-today';
-        break;
-      case 'recurring-upkeep-due-soon':
-        result = 'recurring-upkeep-progress-due-soon';
         break;
       case 'recurring-upkeep-up-to-date':
         result = 'recurring-upkeep-progress-up-to-date';
         break;
       default:
-        result = 'recurring-upkeep-progress-unknown';
+        result = 'recurring-upkeep-progress-overdue'; // Default to overdue for safety
     }
 
     if (RECURRING_UPKEEP_LOGGING_ENABLED) {
@@ -118,10 +103,13 @@ export class TaskStyling {
     statusClass: TaskStatusClass;
     tooltip: string;
   } {
-    // Rule 1: Never completed tasks
+    // If task is eligible for completion, it's overdue (red)
+    // Otherwise, it's up to date (green)
+    
+    // Rule 1: Never completed tasks are overdue
     if (!task.last_done) {
       return {
-        statusClass: 'recurring-upkeep-never-completed',
+        statusClass: 'recurring-upkeep-overdue',
         tooltip: "Task has never been completed"
       };
     }
@@ -135,39 +123,34 @@ export class TaskStyling {
       };
     }
 
-    // Rule 3: Use daysRemaining for status determination
-    // This accounts for the task's interval and complete_early_days settings
+    // Rule 3: Binary decision based on days remaining
+    // Negative or zero days remaining = overdue (red)
+    // Positive days remaining = up to date (green)
     const daysRemaining = task.daysRemaining;
     const completeEarlyDays = RecurringUpkeepUtils.getCompleteEarlyDays(task);
 
-    // Rule 4: Overdue tasks (negative days remaining)
-    if (daysRemaining < 0) {
-      const daysOverdue = Math.abs(daysRemaining);
-      return {
-        statusClass: 'recurring-upkeep-overdue',
-        tooltip: `Overdue by ${daysOverdue} ${daysOverdue === 1 ? 'day' : 'days'}`
-      };
+    // If task can be completed early (within completion window), show as overdue
+    if (daysRemaining <= completeEarlyDays) {
+      if (daysRemaining < 0) {
+        const daysOverdue = Math.abs(daysRemaining);
+        return {
+          statusClass: 'recurring-upkeep-overdue',
+          tooltip: `Overdue by ${daysOverdue} ${daysOverdue === 1 ? 'day' : 'days'}`
+        };
+      } else if (daysRemaining === 0) {
+        return {
+          statusClass: 'recurring-upkeep-overdue',
+          tooltip: "Due today"
+        };
+      } else {
+        return {
+          statusClass: 'recurring-upkeep-overdue',
+          tooltip: `Due in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}`
+        };
+      }
     }
 
-    // Rule 5: Due today
-    if (daysRemaining === 0) {
-      return {
-        statusClass: 'recurring-upkeep-due-today',
-        tooltip: "Due today"
-      };
-    }
-
-    // Rule 6: Due soon (within early completion window OR within 7 days)
-    // This ensures that tasks that can be completed early show orange color
-    const dueSoonThreshold = Math.max(completeEarlyDays, 7);
-    if (daysRemaining <= dueSoonThreshold) {
-      return {
-        statusClass: 'recurring-upkeep-due-soon',
-        tooltip: `Due in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}`
-      };
-    }
-
-    // Rule 7: Up to date (more than due soon threshold)
+    // Rule 4: Up to date (more than early completion window)
     return {
       statusClass: 'recurring-upkeep-up-to-date',
       tooltip: `Due in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}`
@@ -203,12 +186,9 @@ export class TaskStyling {
     const statusClass = this.getStatusClass(task);
     
     switch (statusClass) {
-      case 'recurring-upkeep-never-completed': return 1; // Highest priority
-      case 'recurring-upkeep-overdue': return 2;
-      case 'recurring-upkeep-due-today': return 3;
-      case 'recurring-upkeep-due-soon': return 4;
-      case 'recurring-upkeep-up-to-date': return 5; // Lowest priority
-      default: return 6;
+      case 'recurring-upkeep-overdue': return 1; // Higher priority (red)
+      case 'recurring-upkeep-up-to-date': return 2; // Lower priority (green)
+      default: return 3;
     }
   }
 }

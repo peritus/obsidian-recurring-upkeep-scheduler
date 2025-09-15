@@ -192,7 +192,7 @@ class TestableRecurringUpkeepUtils {
   static determineTaskStatus(task, now = null) {
     if (!task.last_done || task.last_done === "" || task.last_done === "never") {
       return {
-        status: "⚠️ Never completed",
+        status: "⚠️ Overdue",
         statusColor: "#d32f2f",
         daysRemaining: -9999,
         isEligibleForCompletion: true,
@@ -220,17 +220,13 @@ class TestableRecurringUpkeepUtils {
 
     isEligibleForCompletion = daysRemaining <= completeEarlyDays;
 
-    if (daysRemaining < 0) {
-      status = `⚠️ Overdue by ${Math.abs(daysRemaining)} days`;
+    // Binary decision - if eligible for completion, show as overdue
+    // Otherwise, show as up to date
+    if (isEligibleForCompletion) {
+      status = "⚠️ Overdue";
       statusColor = "#d32f2f";
-    } else if (daysRemaining === 0) {
-      status = "⏰ Due today";
-      statusColor = "#ed6c02";
-    } else if (daysRemaining <= 7) {
-      status = `⏰ Due in ${daysRemaining} days`;
-      statusColor = "#ed6c02";
     } else {
-      status = `✅ Up to date`;
+      status = "✅ Up to date";
       statusColor = "#2e7d32";
     }
 
@@ -557,7 +553,7 @@ function runAllTests() {
     interval_unit: "days"
   };
   const statusNever = TestableRecurringUpkeepUtils.determineTaskStatus(neverDoneTask, "2024-01-15");
-  assertEqual(statusNever.status, "⚠️ Never completed", "Should show never completed status");
+  assertEqual(statusNever.status, "⚠️ Overdue", "Should show overdue status");
   assertEqual(statusNever.daysRemaining, -9999, "Never done task should have -9999 days remaining");
   assert(statusNever.isEligibleForCompletion, "Never done task should be eligible for completion");
 

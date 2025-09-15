@@ -70,13 +70,11 @@ export class CompleteButton {
     const statusClass = TaskStyling.getStatusClass(task);
     
     switch (statusClass) {
-      case 'recurring-upkeep-never-completed':
       case 'recurring-upkeep-overdue':
         return 'recurring-upkeep-button-urgent';
       
-      case 'recurring-upkeep-due-today':
-      case 'recurring-upkeep-due-soon':
-        return 'recurring-upkeep-button-ready';
+      case 'recurring-upkeep-up-to-date':
+        return ''; // Default styling
       
       default:
         return ''; // Default styling
