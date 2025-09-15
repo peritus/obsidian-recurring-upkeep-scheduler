@@ -115,10 +115,7 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
         this.renderUpkeepStatus(source, el, ctx);
       });
 
-      // Register post-processor for completion history tables
-      this.registerMarkdownPostProcessor((element, context) => {
-        this.enhanceCompletionHistoryTables(element, context);
-      });
+
 
       // Run tests in development mode
       if (process.env.NODE_ENV === 'development') {
@@ -148,152 +145,11 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
     }
   }
 
-  private enhanceCompletionHistoryTables(element: HTMLElement, context: MarkdownPostProcessorContext): void {
-    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-      console.debug('[Recurring Upkeep] Enhancing completion history tables', {
-        elementId: element.id,
-        sourcePath: context.sourcePath
-      });
-    }
 
-    const tables = element.querySelectorAll('table');
-    
-    tables.forEach((table, index) => {
-      if (this.isCompletionHistoryTable(table as HTMLTableElement)) {
-        this.addStatisticsDashboard(table as HTMLTableElement);
-        
-        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-          console.debug('[Recurring Upkeep] Enhanced completion history table', {
-            tableIndex: index,
-            sourcePath: context.sourcePath
-          });
-        }
-      }
-    });
-  }
 
-  private isCompletionHistoryTable(table: HTMLTableElement): boolean {
-    const headers = table.querySelectorAll('th');
-    const headerTexts = Array.from(headers).map(h => h.textContent?.toLowerCase().trim());
-    
-    // Check for completion history table headers
-    const isHistoryTable = headerTexts.includes('date') && 
-           headerTexts.includes('days since last') && 
-           headerTexts.includes('days scheduled');
 
-    if (RECURRING_UPKEEP_LOGGING_ENABLED && isHistoryTable) {
-      console.debug('[Recurring Upkeep] Identified completion history table', {
-        headers: headerTexts
-      });
-    }
 
-    return isHistoryTable;
-  }
 
-  private addStatisticsDashboard(table: HTMLTableElement): void {
-    const startTime = RECURRING_UPKEEP_LOGGING_ENABLED ? performance.now() : 0;
-
-    // Parse table data
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
-    if (rows.length === 0) return;
-
-    const completions = rows.map(row => {
-      const cells = Array.from(row.querySelectorAll('td'));
-      return {
-        date: cells[0]?.textContent?.trim() || '',
-        daysSinceLast: parseInt(cells[2]?.textContent?.trim() || '0'),
-        daysScheduled: parseInt(cells[3]?.textContent?.trim() || '0')
-      };
-    }).filter(completion => completion.date);
-
-    if (completions.length === 0) return;
-
-    // Calculate statistics
-    const totalCompletions = completions.length;
-    const avgDaysBetween = Math.round((completions.reduce((sum, c) => sum + c.daysSinceLast, 0) / completions.length) * 10) / 10;
-    const onTimeCount = completions.filter(c => c.daysSinceLast <= c.daysScheduled).length;
-    const onTimeRate = Math.round((onTimeCount / totalCompletions) * 100);
-
-    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-      console.debug('[Recurring Upkeep] Calculated statistics for dashboard', {
-        totalCompletions,
-        avgDaysBetween,
-        onTimeCount,
-        onTimeRate: `${onTimeRate}%`
-      });
-    }
-
-    // Get number of columns for colspan
-    const headerCells = table.querySelectorAll('thead th');
-    const colCount = headerCells.length;
-
-    // Create table footer
-    const tfoot = document.createElement('tfoot');
-    tfoot.className = 'recurring-upkeep-stats-footer';
-    
-    const footerRow = document.createElement('tr');
-    const footerCell = document.createElement('td');
-    footerCell.setAttribute('colspan', colCount.toString());
-    
-    // Create dashboard using DOM API instead of innerHTML for security
-    const dashboard = footerCell.createEl('div', { cls: 'recurring-upkeep-stats-dashboard' });
-    
-    // Create header section
-    const header = dashboard.createEl('div', { cls: 'recurring-upkeep-stats-header' });
-    header.createEl('h3', { text: '📊 Maintenance Statistics' });
-    header.createEl('span', { 
-      text: 'Last 12 months', 
-      cls: 'recurring-upkeep-stats-period' 
-    });
-    
-    // Create stats grid
-    const grid = dashboard.createEl('div', { cls: 'recurring-upkeep-stats-grid' });
-    
-    // Total Completions card
-    const totalCard = grid.createEl('div', { cls: 'recurring-upkeep-stat-card' });
-    totalCard.createEl('span', { 
-      text: totalCompletions.toString(), 
-      cls: 'recurring-upkeep-stat-value' 
-    });
-    totalCard.createEl('div', { 
-      text: 'Total Completions', 
-      cls: 'recurring-upkeep-stat-label' 
-    });
-    
-    // Average Days Between card
-    const avgCard = grid.createEl('div', { cls: 'recurring-upkeep-stat-card' });
-    avgCard.createEl('span', { 
-      text: avgDaysBetween.toString(), 
-      cls: 'recurring-upkeep-stat-value' 
-    });
-    avgCard.createEl('div', { 
-      text: 'Avg Days Between', 
-      cls: 'recurring-upkeep-stat-label' 
-    });
-    
-    // On-Time Rate card
-    const rateCard = grid.createEl('div', { cls: 'recurring-upkeep-stat-card' });
-    rateCard.createEl('span', { 
-      text: `${onTimeRate}%`, 
-      cls: 'recurring-upkeep-stat-value' 
-    });
-    rateCard.createEl('div', { 
-      text: 'On-Time Rate', 
-      cls: 'recurring-upkeep-stat-label' 
-    });
-
-    footerRow.appendChild(footerCell);
-    tfoot.appendChild(footerRow);
-    table.appendChild(tfoot);
-
-    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-      const duration = performance.now() - startTime;
-      console.debug('[Recurring Upkeep] Statistics dashboard added', {
-        duration: `${duration.toFixed(2)}ms`,
-        statsGenerated: 3
-      });
-    }
-  }
 
   private async runTests() {
     if (RECURRING_UPKEEP_LOGGING_ENABLED) {

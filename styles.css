@@ -520,77 +520,7 @@
   line-height: 1.4;
 }
 
-/* ========================================
-   STATISTICS DASHBOARD IN TABLE FOOTER
-   ======================================== */
 
-.recurring-upkeep-stats-footer {
-  border-top: 2px solid #ddd;
-}
-
-.recurring-upkeep-stats-footer td {
-  padding: 0;
-  border: none;
-}
-
-.recurring-upkeep-stats-dashboard {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 20px;
-  margin: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.recurring-upkeep-stats-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.recurring-upkeep-stats-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  margin-right: 10px;
-}
-
-.recurring-upkeep-stats-period {
-  background: rgba(255,255,255,0.2);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.recurring-upkeep-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.recurring-upkeep-stat-card {
-  background: rgba(255,255,255,0.15);
-  border-radius: 8px;
-  padding: 16px;
-  text-align: center;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.2);
-}
-
-.recurring-upkeep-stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  display: block;
-}
-
-.recurring-upkeep-stat-label {
-  font-size: 12px;
-  opacity: 0.9;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
 
 /* ========================================
    DARK THEME ADJUSTMENTS
@@ -628,9 +558,7 @@
   border: 1px solid var(--background-modifier-border);
 }
 
-.theme-dark .recurring-upkeep-stats-footer {
-  border-top-color: var(--background-modifier-border);
-}
+
 
 /* Dark theme sidebar adjustments */
 .theme-dark .recurring-upkeep-sidebar-container .recurring-upkeep-table {
@@ -774,18 +702,7 @@
     gap: 8px;
   }
 
-  .recurring-upkeep-stats-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  
-  .recurring-upkeep-stat-card {
-    padding: 12px;
-  }
-  
-  .recurring-upkeep-stat-value {
-    font-size: 20px;
-  }
+
 }
 
 /* ========================================
