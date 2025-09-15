@@ -1,8 +1,9 @@
-import { Plugin, MarkdownPostProcessorContext, MarkdownView, TFile } from 'obsidian';
+import { Plugin, MarkdownPostProcessorContext, MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
 import { UpkeepTask, ProcessedTask } from './types';
 import { TaskProcessor } from './utils/TaskProcessor';
 import { UpkeepTableView } from './views/UpkeepTableView';
 import { UpkeepStatusView } from './views/UpkeepStatusView';
+import { UpkeepSidebarView, UPKEEP_SIDEBAR_VIEW_TYPE } from './views/UpkeepSidebarView';
 import { I18nUtils } from './i18n/I18nUtils';
 import { WidgetEventManager } from './utils/WidgetEventManager';
 import { RECURRING_UPKEEP_LOGGING_ENABLED } from './constants';
@@ -51,7 +52,8 @@ declare global {
 
 export default class RecurringUpkeepSchedulerPlugin extends Plugin {
   public dataviewApi: DataviewAPI | null = null;
-  private widgetEventManager: WidgetEventManager;
+  public widgetEventManager: WidgetEventManager;
+  private sidebarView: UpkeepSidebarView | null = null;
 
   async onload() {
     if (RECURRING_UPKEEP_LOGGING_ENABLED) {
@@ -82,6 +84,26 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
       }
 
       this.checkDataviewDependency();
+
+      // Register sidebar view
+      this.registerView(
+        UPKEEP_SIDEBAR_VIEW_TYPE,
+        (leaf) => new UpkeepSidebarView(leaf, this)
+      );
+
+      // Add ribbon icon for sidebar
+      this.addRibbonIcon("repeat", "Recurring Tasks", () => {
+        this.activateView();
+      });
+
+      // Add command to open sidebar
+      this.addCommand({
+        id: "open-recurring-tasks-sidebar",
+        name: "Open Recurring Tasks Sidebar",
+        callback: () => {
+          this.activateView();
+        }
+      });
 
       // Register table view codeblock processor
       this.registerMarkdownCodeBlockProcessor('recurring-upkeep-table', (source, el, ctx) => {
@@ -507,6 +529,34 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
       });
       console.error('Error fetching tasks from Dataview:', error);
       throw new Error(`Failed to fetch tasks: ${(error as Error).message}`);
+    }
+  }
+
+  async activateView() {
+    const { workspace } = this.app;
+    
+    let leaf: WorkspaceLeaf | null = null;
+    const leaves = workspace.getLeavesOfType(UPKEEP_SIDEBAR_VIEW_TYPE);
+    
+    if (leaves.length > 0) {
+      // A leaf with our view already exists, use that
+      leaf = leaves[0];
+    } else {
+      // Our view could not be found in the workspace, create a new leaf
+      // in the right sidebar for it
+      leaf = workspace.getRightLeaf(false);
+      if (leaf) {
+        await leaf.setViewState({ type: UPKEEP_SIDEBAR_VIEW_TYPE, active: true });
+      }
+    }
+    
+    // "Reveal" the leaf in case it is in a collapsed sidebar
+    if (leaf) {
+      workspace.revealLeaf(leaf);
+    }
+
+    if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+      console.info('[Recurring Upkeep] Sidebar view activated');
     }
   }
 }

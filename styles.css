@@ -21,6 +21,107 @@
 }
 
 /* ========================================
+   SIDEBAR VIEW STYLES
+   ======================================== */
+
+/* Sidebar container */
+.recurring-upkeep-sidebar-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+/* Sidebar header - match native Obsidian pane headers */
+.recurring-upkeep-sidebar-container > .tree-item-self {
+  color: var(--nav-heading-color);
+  padding-inline-start: var(--size-4-2);
+}
+
+.recurring-upkeep-sidebar-container > .tree-item-self .tree-item-inner {
+  font-weight: var(--nav-heading-weight);
+}
+
+/* Sidebar content area */
+.recurring-upkeep-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Loading and empty states */
+.recurring-upkeep-loading,
+.recurring-upkeep-empty-state {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Sidebar table container */
+.recurring-upkeep-sidebar-table-container {
+  /* Table will inherit styles from main table CSS */
+}
+
+/* Sidebar-specific table adjustments */
+.recurring-upkeep-sidebar-container .recurring-upkeep-table {
+  margin-top: 0;
+  font-size: 13px;
+  box-shadow: none;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.recurring-upkeep-sidebar-container .recurring-upkeep-table th {
+  padding: 8px 6px;
+  font-size: 12px;
+  background-color: var(--background-secondary);
+}
+
+.recurring-upkeep-sidebar-container .recurring-upkeep-table td {
+  padding: 8px 6px;
+}
+
+.recurring-upkeep-sidebar-container .recurring-upkeep-task-link {
+  font-size: 13px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 150px;
+}
+
+.recurring-upkeep-sidebar-container .recurring-upkeep-button {
+  padding: 4px 8px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.recurring-upkeep-sidebar-container .recurring-upkeep-status-container {
+  gap: 2px;
+}
+
+.recurring-upkeep-sidebar-container .recurring-upkeep-status-primary {
+  font-size: 12px;
+}
+
+.recurring-upkeep-sidebar-container .recurring-upkeep-status-secondary {
+  font-size: 11px;
+}
+
+/* Responsive sidebar adjustments */
+@media (max-width: 400px) {
+  .recurring-upkeep-summary-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .recurring-upkeep-sidebar-container .recurring-upkeep-task-link {
+    max-width: 120px;
+  }
+}
+
+/* ========================================
    MAIN TABLE STYLING
    ======================================== */
 
@@ -529,6 +630,17 @@
 
 .theme-dark .recurring-upkeep-stats-footer {
   border-top-color: var(--background-modifier-border);
+}
+
+/* Dark theme sidebar adjustments */
+.theme-dark .recurring-upkeep-sidebar-container .recurring-upkeep-table {
+  border-color: var(--background-modifier-border);
+}
+
+.theme-dark .recurring-upkeep-error {
+  background-color: rgba(211, 47, 47, 0.1);
+  border-left-color: var(--task-overdue-color);
+  color: var(--task-overdue-color);
 }
 
 /* ========================================

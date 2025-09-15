@@ -60,13 +60,16 @@ export interface LocaleDefinition {
       due: string;
       never: string;
       notScheduled: string;
-      // NEW: Completion history labels
       completionHistory: string;
       date: string;
       time: string;
       daysSinceLast: string;
       daysScheduled: string;
       user: string;
+      recurringTasks: string;
+      totalTasks: string;
+      needsAttention: string;
+      dueSoon: string;
     };
     statusText: {
       thisIsTask: (frequencyDesc: string) => string;
@@ -89,7 +92,6 @@ export interface LocaleDefinition {
       noTasksFilter: string;
       error: (message: string) => string;
       loading: string;
-      // NEW: Completion history error message
       failedToUpdateCompletionHistory: string;
     };
   };

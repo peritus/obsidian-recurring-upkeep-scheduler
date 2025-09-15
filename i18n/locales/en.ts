@@ -59,13 +59,16 @@ export const en: LocaleDefinition = {
       due: 'Due',
       never: 'Never',
       notScheduled: 'Not scheduled',
-      // NEW: Completion history labels
       completionHistory: 'Completion history',
       date: 'Date',
       time: 'Time',
       daysSinceLast: 'Days Since Last',
       daysScheduled: 'Days Scheduled',
       user: 'User',
+      recurringTasks: 'Recurring Tasks',
+      totalTasks: 'Total',
+      needsAttention: 'Needs Attention',
+      dueSoon: 'Due Soon',
     },
     statusText: {
       thisIsTask: (frequencyDesc: string) => `This is a ${frequencyDesc} task`,
@@ -88,7 +91,6 @@ export const en: LocaleDefinition = {
       noTasksFilter: 'No tasks found matching the current filter.',
       error: (message: string) => `Error: ${message}`,
       loading: 'Loading tasks...',
-      // NEW: Completion history error message
       failedToUpdateCompletionHistory: 'Failed to update completion history',
     },
   },
