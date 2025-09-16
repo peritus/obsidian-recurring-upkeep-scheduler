@@ -5,7 +5,6 @@ import { UpkeepTableView } from './views/UpkeepTableView';
 import { UpkeepStatusView } from './views/UpkeepStatusView';
 import { UpkeepSidebarView, UPKEEP_SIDEBAR_VIEW_TYPE } from './views/UpkeepSidebarView';
 import { I18nUtils } from './i18n/I18nUtils';
-import { WidgetEventManager } from './utils/WidgetEventManager';
 import { RECURRING_UPKEEP_LOGGING_ENABLED } from './constants';
 
 // Type definitions for Dataview page data
@@ -51,7 +50,6 @@ declare global {
 
 export default class RecurringUpkeepSchedulerPlugin extends Plugin {
   public dataviewApi: DataviewAPI | null = null;
-  public widgetEventManager: WidgetEventManager;
   private sidebarView: UpkeepSidebarView | null = null;
 
   async onload() {
@@ -74,12 +72,6 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
       } catch (error) {
         console.error('[Recurring Upkeep] Failed to initialize i18n system', error);
         // Continue loading plugin even if i18n fails
-      }
-
-      // Phase 2: Initialize the centralized event manager
-      this.widgetEventManager = new WidgetEventManager(this.app);
-      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-        console.debug('[Recurring Upkeep] Widget event manager initialized');
       }
 
       this.checkDataviewDependency();
@@ -133,14 +125,6 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
   onunload() {
     if (RECURRING_UPKEEP_LOGGING_ENABLED) {
       console.info('[Recurring Upkeep] Plugin unloading...');
-    }
-    
-    // Clean up the event manager
-    if (this.widgetEventManager) {
-      this.widgetEventManager.cleanup();
-      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-        console.debug('[Recurring Upkeep] Widget event manager cleaned up');
-      }
     }
   }
 
@@ -252,7 +236,7 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
         });
       }
 
-      const tableView = new UpkeepTableView(this.app, this.widgetEventManager, filterQuery);
+      const tableView = new UpkeepTableView(this.app, this, filterQuery);
       tableView.render(container, sortedTasks);
 
       if (RECURRING_UPKEEP_LOGGING_ENABLED) {
@@ -300,7 +284,7 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
         return;
       }
 
-      const statusView = new UpkeepStatusView(this.app, this.widgetEventManager);
+      const statusView = new UpkeepStatusView(this.app);
       await statusView.render(container, file);
 
       if (RECURRING_UPKEEP_LOGGING_ENABLED) {

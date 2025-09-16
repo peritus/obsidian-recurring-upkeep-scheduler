@@ -1,4 +1,4 @@
-import { App, TFile } from 'obsidian';
+import { App, TFile, EventRef } from 'obsidian';
 import { ProcessedTask, FilterQuery, UpkeepTask } from '../types';
 import { DateUtils } from '../utils/DateUtils';
 import { CompleteButton } from '../components/CompleteButton';
@@ -6,53 +6,29 @@ import { ProgressBar } from '../components/ProgressBar';
 import { StatusIndicator } from '../components/StatusIndicator';
 import { FilterParser } from './FilterParser';
 import { I18nUtils } from '../i18n/I18nUtils';
-import { WidgetEventManager } from '../utils/WidgetEventManager';
 import { TaskStyling } from '../utils/TaskStyling';
 import { RECURRING_UPKEEP_LOGGING_ENABLED } from '../constants';
+import RecurringUpkeepSchedulerPlugin from '../main';
 
 // Type definitions for TFile with tags (extended Obsidian interface)
 interface TFileWithTags extends TFile {
   tags?: string[];
 }
 
-// Type definitions for Dataview page data
-interface DataviewPage {
-  file: TFile;
-  last_done?: string;
-  interval?: number;
-  interval_unit?: string;
-  type?: string;
-}
-
-// Type definitions for Dataview API
-interface DataviewAPI {
-  pages(): {
-    where(predicate: (p: DataviewPage) => boolean): {
-      values: DataviewPage[];
-    };
-  };
-}
-
-// Type definitions for plugin access
-interface PluginWithDataview {
-  dataviewApi?: DataviewAPI;
-}
-
 export class UpkeepTableView {
   private app: App;
-  private widgetEventManager: WidgetEventManager;
+  private plugin: RecurringUpkeepSchedulerPlugin;
   private filterQuery: string;
   private now: string;
   private container: HTMLElement | null = null;
-  private widgetId: string;
+  private eventRef: EventRef | null = null;
   private currentTasks: ProcessedTask[] = [];
 
-  constructor(app: App, widgetEventManager: WidgetEventManager, filterQuery: string = '') {
+  constructor(app: App, plugin: RecurringUpkeepSchedulerPlugin, filterQuery: string = '') {
     this.app = app;
-    this.widgetEventManager = widgetEventManager;
+    this.plugin = plugin;
     this.filterQuery = filterQuery;
     this.now = new Date().toISOString().split('T')[0];
-    this.widgetId = `table-${Date.now()}-${Math.random()}`;
   }
 
   render(container: HTMLElement, tasks: ProcessedTask[]): void {
@@ -60,128 +36,148 @@ export class UpkeepTableView {
     this.currentTasks = tasks;
     container.empty();
 
-    // Register this widget with the event manager
-    this.widgetEventManager.registerWidget({
-      id: this.widgetId,
-      containerElement: container,
-      refresh: this.refresh.bind(this),
-      isActive: this.isActive.bind(this)
-    });
-
     const filter = FilterParser.parse(this.filterQuery);
     const filteredTasks = FilterParser.apply(tasks, filter);
 
     this.createTable(container, filteredTasks);
+    
+    // Widget manages its own updates
+    this.setupEventListeners();
   }
 
-  private async refresh(): Promise<void> {
+  private setupEventListeners(): void {
     if (!this.container) return;
 
+    // Clean up any existing listener
+    if (this.eventRef) {
+      this.app.metadataCache.offref(this.eventRef);
+    }
+
+    this.eventRef = this.app.metadataCache.on('changed', async (file: TFile) => {
+      if (this.isRecurringTaskFile(file)) {
+        // Add a small delay to ensure metadata cache and Dataview are fully updated
+        setTimeout(async () => {
+          // UPDATE IN-PLACE: No reordering, no DOM destruction  
+          await this.updateTaskRowInPlace(file);
+        }, 50); // 50ms delay should be sufficient
+      }
+    });
+  }
+
+  private async updateTaskRowInPlace(changedFile: TFile): Promise<void> {
+    if (!this.container) return;
+    
+    // Find the row for this specific file
+    const row = this.container.querySelector(`tr[data-task-path="${changedFile.path}"]`) as HTMLElement;
+    
     try {
-      // Re-fetch and re-process tasks
+      // Get updated task data from the same source as the sidebar view
+      // to ensure data consistency
+      const allTasks = await this.getUpkeepTasks();
+      const updatedTask = allTasks.find(task => task.file.path === changedFile.path);
+      
+      if (!updatedTask) {
+        // Task is no longer a recurring task, remove the row if it exists
+        if (row) {
+          row.remove();
+        }
+        return;
+      }
+
+      // If the row doesn't exist but task is valid, we need full refresh
+      // (new task was added)
+      if (!row) {
+        await this.fullRefresh();
+        return;
+      }
+
+      // Use the processed task data from the consistent data source
+      const processedTask = updatedTask;
+      
+      // Update the status cell content
+      const statusCell = row.querySelector('td:nth-child(2)'); // Second column (status column)
+      if (statusCell) {
+        // Clear the entire status cell and rebuild both components
+        statusCell.empty();
+        
+        // Create the status container 
+        const statusContainer = statusCell.createEl('div', {
+          cls: 'recurring-upkeep-status-container'
+        });
+        
+        // Rebuild status components in the new container
+        const statusIndicator = new StatusIndicator();
+        statusIndicator.render(statusContainer as HTMLElement, processedTask);
+
+        const progressBar = new ProgressBar();
+        progressBar.render(statusContainer as HTMLElement, processedTask, this.now);
+      }
+      
+      // Update complete button visibility
+      const buttonContainer = row.querySelector('.recurring-upkeep-button-container') as HTMLElement;
+      
+      if (buttonContainer) {
+        const today = this.now;
+        const canComplete = (!processedTask.last_done || (processedTask.last_done !== today && processedTask.daysRemaining <= 0));
+        
+        // Set data attribute for CSS-driven visibility
+        buttonContainer.setAttribute('data-can-complete', canComplete.toString());
+        
+        if (canComplete && buttonContainer.children.length === 0) {
+          // Add complete button if it should be visible and isn't already
+          const completeButton = new CompleteButton(this.app);
+          completeButton.render(buttonContainer, processedTask);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error updating task row in-place:', error);
+      // On error, try a full refresh as fallback
+      await this.fullRefresh();
+    }
+  }
+
+  private async fullRefresh(): Promise<void> {
+    if (!this.container) return;
+    
+    try {
+      // Re-fetch all tasks
       const tasks = await this.getUpkeepTasks();
       const filter = FilterParser.parse(this.filterQuery);
       const filteredTasks = FilterParser.apply(tasks, filter);
       
-      // Check if anything actually changed by comparing task data
-      if (this.hasDataChanged(tasks)) {
-        // Update current tasks
-        this.currentTasks = tasks;
-        
-        // Clear and re-render
-        this.container.empty();
-        this.createTable(this.container, filteredTasks);
-        
-        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-          console.debug(`🔄 Table widget ${this.widgetId} refreshed - data changed`);
-        }
-      } else {
-        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-          console.debug(`🔄 Table widget ${this.widgetId} - no data changes, skipping refresh`);
-        }
+      // Clear and re-render
+      this.container.empty();
+      this.createTable(this.container, filteredTasks);
+      
+      // Update stored tasks
+      this.currentTasks = tasks;
+      
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.debug('[Recurring Upkeep] Table fully refreshed');
       }
     } catch (error) {
-      console.error(`❌ Error refreshing table widget ${this.widgetId}:`, error);
+      console.error('Error during full refresh:', error);
     }
   }
 
-  private hasDataChanged(newTasks: ProcessedTask[]): boolean {
-    // Simple comparison - if task count changed or any task status changed
-    if (newTasks.length !== this.currentTasks.length) {
-      return true;
-    }
-
-    // Check if any task's last_done or status has changed
-    for (let i = 0; i < newTasks.length; i++) {
-      const newTask = newTasks[i];
-      const currentTask = this.currentTasks[i];
-      
-      if (!currentTask || 
-          newTask.file.path !== currentTask.file.path ||
-          newTask.last_done !== currentTask.last_done ||
-          newTask.status !== currentTask.status) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private isActive(): boolean {
-    // Check if the container is still in the DOM
-    return this.container?.isConnected ?? false;
+  private isRecurringTaskFile(file: TFile): boolean {
+    if (file.extension !== 'md') return false;
+    
+    const cache = this.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+    
+    return frontmatter?.tags?.includes("recurring-task") ||
+           frontmatter?.type === "recurring-task";
   }
 
   private async getUpkeepTasks(): Promise<ProcessedTask[]> {
-    // Get the main plugin instance through the app with safe type casting
-    const pluginSystem = this.app as unknown as { 
-      plugins: { 
-        plugins: { 
-          'recurring-upkeep-scheduler'?: PluginWithDataview 
-        } 
-      } 
-    };
+    // Get tasks directly from the plugin instance
+    const tasks = await this.plugin.getUpkeepTasks();
     
-    const plugin = pluginSystem.plugins.plugins['recurring-upkeep-scheduler'];
-    
-    if (!plugin || !plugin.dataviewApi) {
-      throw new Error('Plugin or Dataview API not available');
-    }
-
-    try {
-      const pages = plugin.dataviewApi.pages().where((p: DataviewPage) => {
-        const fileWithTags = p.file as TFileWithTags;
-        return fileWithTags.tags?.includes("recurring-task") ||
-               fileWithTags.tags?.includes("#recurring-task") ||
-               p.type === "recurring-task";
-      });
-
-      const tasks: UpkeepTask[] = [];
-      for (const page of pages.values) {
-        const fileWithTags = page.file as TFileWithTags;
-        const task: UpkeepTask = {
-          file: page.file,
-          last_done: page.last_done,
-          interval: page.interval || 0,
-          interval_unit: page.interval_unit || '',
-          type: page.type,
-          tags: fileWithTags.tags || []
-        };
-
-        if (task.interval && task.interval_unit) {
-          tasks.push(task);
-        }
-      }
-
-      // Process and sort tasks
-      const { TaskProcessor } = await import('../utils/TaskProcessor');
-      const processedTasks = TaskProcessor.processTasks(tasks);
-      return TaskProcessor.sortTasks(processedTasks);
-
-    } catch (error) {
-      console.error('Error fetching tasks for refresh:', error);
-      return [];
-    }
+    // Process and sort tasks
+    const processedTasks = TaskProcessor.processTasks(tasks);
+    return TaskProcessor.sortTasks(processedTasks);
   }
 
   private createTable(container: HTMLElement, tasks: ProcessedTask[]): void {
@@ -233,8 +229,9 @@ export class UpkeepTableView {
   }
 
   private createTaskRow(tbody: HTMLElement, task: ProcessedTask, index: number): void {
-    const row = tbody.createEl('tr');
-    // Row styling is handled by CSS nth-child selectors
+    const row = tbody.createEl('tr', {
+      attr: { 'data-task-path': task.file.path } // Add tracking attribute for in-place updates
+    });
 
     this.createTaskNameCell(row, task);
     this.createStatusCell(row, task);
@@ -258,16 +255,21 @@ export class UpkeepTableView {
       this.app.workspace.openLinkText(task.file.path, '');
     });
 
+    // Always create button container for consistent update behavior
+    const buttonContainer = nameContainer.createEl('div', {
+      cls: 'recurring-upkeep-button-container'
+    });
+
     // Show complete button if task is overdue or never completed (daysRemaining <= 0)
     // Don't show if completed today
     const today = this.now;
     const canComplete = (!task.last_done || (task.last_done !== today && task.daysRemaining <= 0));
     
+    // Set data attribute for CSS-driven visibility
+    buttonContainer.setAttribute('data-can-complete', canComplete.toString());
+    
     if (canComplete) {
-      const completeButton = new CompleteButton(this.app, this.widgetEventManager);
-      const buttonContainer = nameContainer.createEl('div', {
-        cls: 'recurring-upkeep-button-container'
-      });
+      const completeButton = new CompleteButton(this.app);
       completeButton.render(buttonContainer, task);
     }
   }
@@ -284,5 +286,13 @@ export class UpkeepTableView {
 
     const progressBar = new ProgressBar();
     progressBar.render(statusContainer, task, this.now);
+  }
+
+  // Cleanup method for when widget is destroyed
+  destroy(): void {
+    if (this.eventRef) {
+      this.app.metadataCache.offref(this.eventRef);
+      this.eventRef = null;
+    }
   }
 }

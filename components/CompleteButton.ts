@@ -2,16 +2,13 @@ import { App, TFile } from 'obsidian';
 import { ProcessedTask } from '../types';
 import { RecurringUpkeepUtils } from '../utils/RecurringUpkeepUtils';
 import { I18nUtils } from '../i18n/I18nUtils';
-import { WidgetEventManager } from '../utils/WidgetEventManager';
 import { TaskStyling } from '../utils/TaskStyling';
 
 export class CompleteButton {
   private app: App;
-  private widgetEventManager: WidgetEventManager;
 
-  constructor(app: App, widgetEventManager: WidgetEventManager) {
+  constructor(app: App) {
     this.app = app;
-    this.widgetEventManager = widgetEventManager;
   }
 
   render(container: HTMLElement, task: ProcessedTask, onComplete?: () => void): void {
@@ -36,8 +33,8 @@ export class CompleteButton {
         button.textContent = "✅ " + I18nUtils.t.filters.status.upToDate;
         button.className = "recurring-upkeep-button recurring-upkeep-button-success";
 
-        // Notify all widgets that something changed - they'll check their own data
-        this.widgetEventManager.notifyChange();
+        // File change will automatically trigger UI updates via metadataCache event
+        // No manual notification needed!
 
         if (onComplete) {
           onComplete();

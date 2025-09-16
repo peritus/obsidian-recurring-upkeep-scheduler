@@ -3,7 +3,6 @@ import { ProcessedTask } from '../types';
 import { UpkeepTableView } from './UpkeepTableView';
 import { TaskProcessor } from '../utils/TaskProcessor';
 import { I18nUtils } from '../i18n/I18nUtils';
-import { WidgetEventManager } from '../utils/WidgetEventManager';
 import { RECURRING_UPKEEP_LOGGING_ENABLED } from '../constants';
 import RecurringUpkeepSchedulerPlugin from '../main';
 
@@ -50,7 +49,7 @@ export class UpkeepSidebarView extends ItemView {
       cls: 'recurring-upkeep-sidebar-content'
     });
 
-    // Initial render
+    // Initial render - TableView will handle its own updates
     await this.renderContent(contentArea);
 
     if (RECURRING_UPKEEP_LOGGING_ENABLED) {
@@ -65,6 +64,7 @@ export class UpkeepSidebarView extends ItemView {
 
     // Cleanup table view
     if (this.tableView) {
+      this.tableView.destroy();
       this.tableView = null;
     }
   }
@@ -83,6 +83,12 @@ export class UpkeepSidebarView extends ItemView {
   private async renderContent(container: HTMLElement): Promise<void> {
     // Clear existing content
     container.empty();
+
+    // Clean up old table view if it exists
+    if (this.tableView) {
+      this.tableView.destroy();
+      this.tableView = null;
+    }
 
     // Show loading state
     const loadingEl = container.createEl('div', {
@@ -110,17 +116,18 @@ export class UpkeepSidebarView extends ItemView {
       // Remove loading state
       loadingEl.remove();
 
-      // Create table view
+      // Create table view - it will handle its own event listeners and updates
       const tableContainer = container.createEl('div', {
         cls: 'recurring-upkeep-sidebar-table-container'
       });
 
       this.tableView = new UpkeepTableView(
-        this.app, 
-        this.plugin.widgetEventManager, 
+        this.app,
+        this.plugin,
         '' // No filter for sidebar view
       );
       
+      // TableView manages its own refresh logic via metadata cache events
       this.tableView.render(tableContainer, sortedTasks);
 
       if (RECURRING_UPKEEP_LOGGING_ENABLED) {

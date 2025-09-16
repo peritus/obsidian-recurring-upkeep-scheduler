@@ -1,27 +1,22 @@
-import { App, TFile } from 'obsidian';
+import { App, TFile, EventRef } from 'obsidian';
 import { UpkeepTask } from '../types';
 import { TaskProcessor } from '../utils/TaskProcessor';
 import { CompleteButton } from '../components/CompleteButton';
 import { ProgressBar } from '../components/ProgressBar';
 import { I18nUtils } from '../i18n/I18nUtils';
-import { WidgetEventManager } from '../utils/WidgetEventManager';
 import { TaskStyling } from '../utils/TaskStyling';
 import { RECURRING_UPKEEP_LOGGING_ENABLED } from '../constants';
 
 export class UpkeepStatusView {
   private app: App;
-  private widgetEventManager: WidgetEventManager;
   private now: string;
   private container: HTMLElement | null = null;
   private currentFile: TFile | null = null;
-  private widgetId: string;
-  private lastTaskData: any = null; // Cache last task data to detect changes
+  private eventRef: EventRef | null = null;
 
-  constructor(app: App, widgetEventManager: WidgetEventManager) {
+  constructor(app: App) {
     this.app = app;
-    this.widgetEventManager = widgetEventManager;
     this.now = new Date().toISOString().split('T')[0];
-    this.widgetId = `status-${Date.now()}-${Math.random()}`;
   }
 
   async render(container: HTMLElement, file: TFile): Promise<void> {
@@ -29,87 +24,78 @@ export class UpkeepStatusView {
     this.currentFile = file;
     container.empty();
 
-    // Register this widget with the event manager
-    this.widgetEventManager.registerWidget({
-      id: this.widgetId,
-      containerElement: container,
-      refresh: this.refresh.bind(this),
-      isActive: this.isActive.bind(this)
-    });
-
     try {
       const task = await this.getCurrentFileTask(file);
 
       if (!task) {
         this.renderNoTaskMessage(container);
-        this.lastTaskData = null;
         return;
       }
 
       const processedTask = TaskProcessor.processTask(task, this.now);
       this.renderTaskStatus(container, processedTask);
-      this.lastTaskData = processedTask;
 
     } catch (error) {
       console.error('Error in UpkeepStatusView:', error);
       this.renderErrorMessage(container, error as Error);
     }
+
+    // Widget manages its own updates
+    this.setupEventListeners();
   }
 
-  private async refresh(): Promise<void> {
+  private setupEventListeners(): void {
+    if (!this.container || !this.currentFile) return;
+
+    // Clean up any existing listener
+    if (this.eventRef) {
+      this.app.metadataCache.offref(this.eventRef);
+    }
+
+    this.eventRef = this.app.metadataCache.on('changed', async (changedFile: TFile) => {
+      // Update if the current file changed OR if any recurring task changed
+      // (other task changes might affect context/ordering)
+      if (changedFile.path === this.currentFile!.path || this.isRecurringTaskFile(changedFile)) {
+        // Add a small delay to ensure metadata cache is fully updated
+        setTimeout(async () => {
+          await this.quickRender();
+        }, 50); // 50ms delay should be sufficient
+      }
+    });
+  }
+
+  private async quickRender(): Promise<void> {
     if (!this.container || !this.currentFile) return;
 
     try {
       const task = await this.getCurrentFileTask(this.currentFile);
 
+      // Clear and re-render (status widgets are simple enough for full re-render)
+      this.container.empty();
+
       if (!task) {
-        // Task was removed - check if we need to update
-        if (this.lastTaskData !== null) {
-          this.container.empty();
-          this.renderNoTaskMessage(this.container);
-          this.lastTaskData = null;
-          if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-            console.debug(`🔄 Status widget ${this.widgetId} refreshed - task removed`);
-          }
-        }
+        this.renderNoTaskMessage(this.container);
         return;
       }
 
       const processedTask = TaskProcessor.processTask(task, this.now);
+      this.renderTaskStatus(this.container, processedTask);
 
-      // Check if the task data actually changed
-      if (this.hasTaskDataChanged(processedTask)) {
-        this.container.empty();
-        this.renderTaskStatus(this.container, processedTask);
-        this.lastTaskData = processedTask;
-        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-          console.debug(`🔄 Status widget ${this.widgetId} refreshed - data changed`);
-        }
-      } else {
-        if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-          console.debug(`🔄 Status widget ${this.widgetId} - no data changes, skipping refresh`);
-        }
-      }
     } catch (error) {
-      console.error(`❌ Error refreshing status widget ${this.widgetId}:`, error);
+      console.error('Error refreshing status widget:', error);
+      this.container.empty();
+      this.renderErrorMessage(this.container, error as Error);
     }
   }
 
-  private hasTaskDataChanged(newTask: any): boolean {
-    if (!this.lastTaskData) return true;
-
-    // Compare key task properties that would affect the display
-    return (
-      newTask.last_done !== this.lastTaskData.last_done ||
-      newTask.status !== this.lastTaskData.status ||
-      newTask.daysRemaining !== this.lastTaskData.daysRemaining ||
-      newTask.calculatedNextDue !== this.lastTaskData.calculatedNextDue
-    );
-  }
-
-  private isActive(): boolean {
-    // Check if the container is still in the DOM
-    return this.container?.isConnected ?? false;
+  private isRecurringTaskFile(file: TFile): boolean {
+    if (file.extension !== 'md') return false;
+    
+    const cache = this.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+    
+    return frontmatter?.tags?.includes("recurring-task") ||
+           frontmatter?.type === "recurring-task";
   }
 
   private async getCurrentFileTask(file: TFile): Promise<UpkeepTask | null> {
@@ -173,7 +159,7 @@ export class UpkeepStatusView {
     
     if (canComplete) {
       const buttonContainer = statusRow.createEl('div');
-      const completeButton = new CompleteButton(this.app, this.widgetEventManager);
+      const completeButton = new CompleteButton(this.app);
       completeButton.render(buttonContainer, task);
     }
 
@@ -279,5 +265,13 @@ interval_unit: months
       text: I18nUtils.t.ui.messages.error(error.message),
       cls: 'recurring-upkeep-error-message'
     });
+  }
+
+  // Cleanup method for when widget is destroyed
+  destroy(): void {
+    if (this.eventRef) {
+      this.app.metadataCache.offref(this.eventRef);
+      this.eventRef = null;
+    }
   }
 }

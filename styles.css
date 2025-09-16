@@ -274,6 +274,12 @@
 }
 
 /* ========================================
+   DATA-DRIVEN SEMANTIC STYLING
+   ======================================== */
+
+[data-can-complete="false"] .complete-button { display: none; }
+
+/* ========================================
    BUTTON STYLES (Semantic Classes)
    ======================================== */
 
