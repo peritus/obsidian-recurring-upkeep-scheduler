@@ -237,13 +237,11 @@
 /* Overdue - red for tasks that need attention */
 .recurring-upkeep-overdue {
   color: #d32f2f;
-  font-weight: bold;
 }
 
 /* Up to date - green for completed/current tasks */
 .recurring-upkeep-up-to-date {
   color: #2e7d32;
-  font-weight: normal;
 }
 
 /* ========================================
