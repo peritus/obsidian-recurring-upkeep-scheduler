@@ -186,24 +186,8 @@ export class UpkeepStatusView {
   }
 
   private getLocalizedStatus(task: any): string {
-    // Use the task properties to determine status instead of parsing English text
-    try {
-      if (!task.last_done) {
-        return I18nUtils.t.status.neverCompleted;
-      } else if (task.daysRemaining < 0) {
-        const days = Math.abs(task.daysRemaining);
-        return I18nUtils.formatOverdue(days);
-      } else if (task.daysRemaining === 0) {
-        return I18nUtils.t.status.dueToday;
-      } else {
-        return I18nUtils.t.status.upToDate;
-      }
-    } catch (error) {
-      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-        console.warn('Error localizing status, using fallback:', error);
-      }
-      return task.status; // Fallback to original if i18n fails
-    }
+    // Use centralized status text generation
+    return TaskStyling.getStatusText(task);
   }
 
   private renderTaskInfo(container: HTMLElement, task: any): void {
@@ -211,38 +195,8 @@ export class UpkeepStatusView {
       cls: 'recurring-upkeep-task-info'
     });
 
-    // Localized frequency text with emoji
-    const frequencyText = `🔁 ${I18nUtils.formatFrequency(task.interval, task.interval_unit)}`;
-
-    // Status-specific due date information - all localized, using task properties instead of text matching
-    let dueDateText = '';
-
-    try {
-      if (!task.last_done) {
-        dueDateText = `📅 ${I18nUtils.t.ui.labels.never}`;
-      } else if (task.daysRemaining < 0) {
-        if (task.calculatedNextDue) {
-          const wasDueText = I18nUtils.formatRelativeDate(task.calculatedNextDue, this.now);
-          dueDateText = `📅 ${I18nUtils.t.ui.labels.wasDue} ${wasDueText}`;
-        } else {
-          dueDateText = `📅 ${I18nUtils.t.filters.status.overdue}`;
-        }
-      } else if (task.daysRemaining === 0) {
-        dueDateText = `📅 ${I18nUtils.t.time.relative.today}`;
-      } else if (task.calculatedNextDue) {
-        const nextDueText = I18nUtils.formatRelativeDate(task.calculatedNextDue, this.now);
-        dueDateText = `📅 ${I18nUtils.t.ui.labels.nextDue} ${nextDueText}`;
-      } else {
-        dueDateText = `📅 ${I18nUtils.t.ui.labels.notScheduled}`;
-      }
-    } catch (error) {
-      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-        console.warn('Error localizing date info, using fallback:', error);
-      }
-      dueDateText = `📅 ${task.calculatedNextDue ? this.formatAbsoluteDate(task.calculatedNextDue) : I18nUtils.t.ui.labels.notScheduled}`;
-    }
-
-    infoContainer.textContent = `${frequencyText} • ${dueDateText}`;
+    // Use centralized task info display text
+    infoContainer.textContent = TaskStyling.getTaskInfoDisplayText(task, this.now);
 
     // Add localized tooltip if we have a due date
     if (task.calculatedNextDue) {
@@ -325,22 +279,5 @@ interval_unit: months
       text: I18nUtils.t.ui.messages.error(error.message),
       cls: 'recurring-upkeep-error-message'
     });
-  }
-
-  private formatAbsoluteDate(dateString: string): string {
-    if (!dateString) return I18nUtils.t.ui.labels.never;
-
-    // Use the i18n manager's date formatting
-    try {
-      return I18nUtils.i18n.formatDate(dateString, {
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (error) {
-      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
-        console.warn('Error formatting absolute date, using fallback:', error);
-      }
-      return dateString;
-    }
   }
 }

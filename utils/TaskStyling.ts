@@ -1,5 +1,7 @@
 import { ProcessedTask } from '../types';
 import { RecurringUpkeepUtils } from './RecurringUpkeepUtils';
+import { DateUtils } from './DateUtils';
+import { I18nUtils } from '../i18n/I18nUtils';
 import { RECURRING_UPKEEP_LOGGING_ENABLED } from '../constants';
 
 // Task status and progress bar CSS classes
@@ -163,5 +165,168 @@ export class TaskStyling {
       case 'recurring-upkeep-up-to-date': return 2; // Lower priority (green)
       default: return 3;
     }
+  }
+
+  // ========================================
+  // UI CONSTANTS AND DISPLAY TEXT METHODS
+  // ========================================
+
+  /**
+   * UI symbols used consistently across all components
+   */
+  static readonly UI_SYMBOLS = {
+    FREQUENCY: '🔁',
+    DATE: '📅',
+    SEPARATOR: ' • '
+  } as const;
+
+  /**
+   * Get the primary status text for display
+   * Centralizes status text generation from multiple components
+   * 
+   * @param task The processed task
+   * @returns Localized status text (e.g., "✅ Up to date", "⚠️ Overdue by 3 days")
+   */
+  static getStatusText(task: ProcessedTask): string {
+    try {
+      if (!task.last_done) {
+        return I18nUtils.t.status.neverCompleted;
+      } else if (task.daysRemaining < 0) {
+        const days = Math.abs(task.daysRemaining);
+        return I18nUtils.formatOverdue(days);
+      } else if (task.daysRemaining === 0) {
+        return I18nUtils.t.status.dueToday;
+      } else {
+        return I18nUtils.t.status.upToDate;
+      }
+    } catch (error) {
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.warn('[TaskStyling] Error getting status text, using fallback:', error);
+      }
+      // Fallback to basic status if i18n fails
+      return task.status || "Unknown status";
+    }
+  }
+
+  /**
+   * Get secondary status information text
+   * Centralizes complex conditional logic from StatusIndicator component
+   * 
+   * @param task The processed task
+   * @param currentTime Optional current time for calculations
+   * @returns Secondary status text with task details
+   */
+  static getSecondaryStatusText(task: ProcessedTask, currentTime?: string): string {
+    const now = currentTime || new Date().toISOString().split('T')[0];
+    const frequencyDesc = RecurringUpkeepUtils.getFrequencyDescription(
+      task.interval,
+      task.interval_unit
+    );
+
+    try {
+      if (!task.last_done) {
+        return I18nUtils.t.ui.statusText.thisIsTask(frequencyDesc);
+      } else if (DateUtils.isToday(task.last_done, now)) {
+        if (task.calculatedNextDue) {
+          const relativeDate = I18nUtils.formatRelativeDate(task.calculatedNextDue, now);
+          return I18nUtils.t.ui.statusText.dueWithFrequency(relativeDate, frequencyDesc);
+        } else {
+          let daysUntilDue = 0;
+          const unit = task.interval_unit.toLowerCase();
+          if (unit === "days" || unit === "day") {
+            daysUntilDue = Number(task.interval);
+          } else if (unit === "weeks" || unit === "week") {
+            daysUntilDue = Number(task.interval) * 7;
+          } else if (unit === "months" || unit === "month") {
+            daysUntilDue = Number(task.interval) * 30;
+          } else if (unit === "years" || unit === "year") {
+            daysUntilDue = Number(task.interval) * 365;
+          }
+          return I18nUtils.t.ui.statusText.dueInDays(daysUntilDue, frequencyDesc);
+        }
+      } else if (task.daysRemaining < 0) {
+        const relativeDate = I18nUtils.formatRelativeDate(task.last_done, now);
+        return I18nUtils.t.ui.statusText.taskLastDone(frequencyDesc, relativeDate);
+      } else if (task.daysRemaining === 0) {
+        const relativeDate = I18nUtils.formatRelativeDate(task.last_done, now);
+        return I18nUtils.t.ui.statusText.taskLastDone(frequencyDesc, relativeDate);
+      } else {
+        const relativeDate = I18nUtils.formatRelativeDate(task.calculatedNextDue || "", now);
+        return I18nUtils.t.ui.statusText.dueWithFrequency(relativeDate, frequencyDesc);
+      }
+    } catch (error) {
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.warn('[TaskStyling] Error getting secondary status text:', error);
+      }
+      return frequencyDesc; // Fallback to basic frequency description
+    }
+  }
+
+  /**
+   * Get frequency display text with emoji
+   * 
+   * @param task The processed task
+   * @returns Frequency text with emoji (e.g., "🔁 Every 2 weeks")
+   */
+  static getFrequencyDisplayText(task: ProcessedTask): string {
+    try {
+      const frequency = I18nUtils.formatFrequency(task.interval, task.interval_unit);
+      return `${this.UI_SYMBOLS.FREQUENCY} ${frequency}`;
+    } catch (error) {
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.warn('[TaskStyling] Error getting frequency display text:', error);
+      }
+      return `${this.UI_SYMBOLS.FREQUENCY} ${task.interval} ${task.interval_unit}`;
+    }
+  }
+
+  /**
+   * Get due date display text with emoji
+   * 
+   * @param task The processed task
+   * @param currentTime Optional current time for calculations
+   * @returns Due date text with emoji (e.g., "📅 Due in 5 days")
+   */
+  static getDueDateDisplayText(task: ProcessedTask, currentTime?: string): string {
+    const now = currentTime || new Date().toISOString().split('T')[0];
+
+    try {
+      if (!task.last_done) {
+        return `${this.UI_SYMBOLS.DATE} ${I18nUtils.t.ui.labels.never}`;
+      } else if (task.daysRemaining < 0) {
+        if (task.calculatedNextDue) {
+          const wasDueText = I18nUtils.formatRelativeDate(task.calculatedNextDue, now);
+          return `${this.UI_SYMBOLS.DATE} ${I18nUtils.t.ui.labels.wasDue} ${wasDueText}`;
+        } else {
+          return `${this.UI_SYMBOLS.DATE} ${I18nUtils.t.filters.status.overdue}`;
+        }
+      } else if (task.daysRemaining === 0) {
+        return `${this.UI_SYMBOLS.DATE} ${I18nUtils.t.time.relative.today}`;
+      } else if (task.calculatedNextDue) {
+        const nextDueText = I18nUtils.formatRelativeDate(task.calculatedNextDue, now);
+        return `${this.UI_SYMBOLS.DATE} ${I18nUtils.t.ui.labels.nextDue} ${nextDueText}`;
+      } else {
+        return `${this.UI_SYMBOLS.DATE} ${I18nUtils.t.ui.labels.notScheduled}`;
+      }
+    } catch (error) {
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.warn('[TaskStyling] Error getting due date display text:', error);
+      }
+      return `${this.UI_SYMBOLS.DATE} ${task.calculatedNextDue || I18nUtils.t.ui.labels.notScheduled}`;
+    }
+  }
+
+  /**
+   * Get complete task info display text
+   * Combines frequency and due date with consistent formatting
+   * 
+   * @param task The processed task
+   * @param currentTime Optional current time for calculations
+   * @returns Complete task info (e.g., "🔁 Every 2 weeks • 📅 Due in 5 days")
+   */
+  static getTaskInfoDisplayText(task: ProcessedTask, currentTime?: string): string {
+    const frequencyText = this.getFrequencyDisplayText(task);
+    const dueDateText = this.getDueDateDisplayText(task, currentTime);
+    return `${frequencyText}${this.UI_SYMBOLS.SEPARATOR}${dueDateText}`;
   }
 }

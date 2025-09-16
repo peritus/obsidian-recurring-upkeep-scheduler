@@ -1,6 +1,4 @@
 import { ProcessedTask } from '../types';
-import { RecurringUpkeepUtils } from '../utils/RecurringUpkeepUtils';
-import { DateUtils } from '../utils/DateUtils';
 import { I18nUtils } from '../i18n/I18nUtils';
 import { TaskStyling } from '../utils/TaskStyling';
 
@@ -26,52 +24,21 @@ export class StatusIndicator {
   }
 
   private updateStatus(primaryElement: HTMLElement, secondaryElement: HTMLElement, task: ProcessedTask): void {
-    const now = new Date().toISOString().split('T')[0];
-    const frequencyDesc = RecurringUpkeepUtils.getFrequencyDescription(
-      task.interval,
-      task.interval_unit
-    );
-
-    // Use centralized styling instead of hardcoded color
-    primaryElement.textContent = task.status;
+    // Use centralized styling and text generation
+    primaryElement.textContent = TaskStyling.getStatusText(task);
     const statusClass = TaskStyling.getStatusClass(task);
     primaryElement.addClasses([statusClass]);
 
-    if (!task.last_done) {
-      secondaryElement.textContent = I18nUtils.t.ui.statusText.thisIsTask(frequencyDesc);
-    } else if (DateUtils.isToday(task.last_done, now)) {
-      if (task.calculatedNextDue) {
-        const relativeDate = I18nUtils.formatRelativeDate(task.calculatedNextDue, now);
-        secondaryElement.textContent = I18nUtils.t.ui.statusText.dueWithFrequency(relativeDate, frequencyDesc);
+    // Use centralized secondary status text generation
+    secondaryElement.textContent = TaskStyling.getSecondaryStatusText(task);
+
+    // Add tooltip if we have a due date
+    if (task.calculatedNextDue) {
+      const now = new Date().toISOString().split('T')[0];
+      try {
         I18nUtils.addDateTooltip(secondaryElement, task.calculatedNextDue, I18nUtils.t.ui.labels.due, now);
-      } else {
-        let daysUntilDue = 0;
-        const unit = task.interval_unit.toLowerCase();
-        if (unit === "days" || unit === "day") {
-          daysUntilDue = Number(task.interval);
-        } else if (unit === "weeks" || unit === "week") {
-          daysUntilDue = Number(task.interval) * 7;
-        } else if (unit === "months" || unit === "month") {
-          daysUntilDue = Number(task.interval) * 30;
-        } else if (unit === "years" || unit === "year") {
-          daysUntilDue = Number(task.interval) * 365;
-        }
-        secondaryElement.textContent = I18nUtils.t.ui.statusText.dueInDays(daysUntilDue, frequencyDesc);
-        secondaryElement.title = I18nUtils.t.ui.statusText.approximateDueDate(daysUntilDue);
-      }
-    } else if (task.daysRemaining < 0) {
-      const relativeDate = I18nUtils.formatRelativeDate(task.last_done, now);
-      secondaryElement.textContent = I18nUtils.t.ui.statusText.taskLastDone(frequencyDesc, relativeDate);
-      I18nUtils.addDateTooltip(secondaryElement, task.last_done, I18nUtils.t.ui.labels.lastDone, now);
-    } else if (task.daysRemaining === 0) {
-      const relativeDate = I18nUtils.formatRelativeDate(task.last_done, now);
-      secondaryElement.textContent = I18nUtils.t.ui.statusText.taskLastDone(frequencyDesc, relativeDate);
-      I18nUtils.addDateTooltip(secondaryElement, task.last_done, I18nUtils.t.ui.labels.lastDone, now);
-    } else {
-      const relativeDate = I18nUtils.formatRelativeDate(task.calculatedNextDue || "", now);
-      secondaryElement.textContent = I18nUtils.t.ui.statusText.dueWithFrequency(relativeDate, frequencyDesc);
-      if (task.calculatedNextDue) {
-        I18nUtils.addDateTooltip(secondaryElement, task.calculatedNextDue, I18nUtils.t.ui.labels.due, now);
+      } catch (error) {
+        // Ignore tooltip errors - not critical for functionality
       }
     }
   }
