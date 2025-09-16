@@ -129,7 +129,6 @@ export class RecurringUpkeepUtils {
         lastDone: task.last_done,
         interval: task.interval,
         intervalUnit: task.interval_unit,
-        completeEarlyDays: task.complete_early_days,
         now
       });
     }
@@ -138,7 +137,6 @@ export class RecurringUpkeepUtils {
       const result = {
         status: this.getLocalizedOverdue(),
         daysRemaining: -9999,
-        isEligibleForCompletion: true,
         calculatedNextDue: null
       };
 
@@ -164,7 +162,6 @@ export class RecurringUpkeepUtils {
     }
 
     let status: string;
-    let isEligibleForCompletion: boolean;
 
     if (DateUtils.isToday(task.last_done, now)) {
       const intervalInDays = this.calculateIntervalInDays(task.interval, task.interval_unit);
@@ -172,7 +169,6 @@ export class RecurringUpkeepUtils {
       const result = {
         status: this.getLocalizedUpToDate(),
         daysRemaining: intervalInDays,
-        isEligibleForCompletion: false,
         calculatedNextDue: nextDue
       };
 
@@ -187,12 +183,8 @@ export class RecurringUpkeepUtils {
       return result;
     }
 
-    // Simple logic: only overdue tasks (daysRemaining <= 0) can be completed
-    isEligibleForCompletion = daysRemaining <= 0;
-
-    // Binary decision - if eligible for completion, show as overdue
-    // Otherwise, show as up to date
-    if (isEligibleForCompletion) {
+    // Binary decision based on days remaining
+    if (daysRemaining <= 0) {
       status = this.getLocalizedOverdue();
     } else {
       status = this.getLocalizedUpToDate();
@@ -201,7 +193,6 @@ export class RecurringUpkeepUtils {
     const result = {
       status,
       daysRemaining,
-      isEligibleForCompletion,
       calculatedNextDue: nextDue
     };
 
@@ -655,7 +646,6 @@ export class RecurringUpkeepUtils {
     const statusToday = this.determineTaskStatus(taskCompletedToday, "2024-01-15");
     assertEqual(statusToday.status, "✅ Up to date", "Task completed today should show up to date");
     assertEqual(statusToday.daysRemaining, 30, "Monthly task completed today should show 30 days remaining");
-    assert(!statusToday.isEligibleForCompletion, "Task completed today should not be eligible for completion");
 
     // Test 6: Never completed task
     console.log("\n❓ Test 6: Never completed task");
@@ -668,7 +658,6 @@ export class RecurringUpkeepUtils {
     const statusNever = this.determineTaskStatus(neverDoneTask, "2024-01-15");
     assertEqual(statusNever.status, "⚠️ Overdue", "Should show overdue status");
     assertEqual(statusNever.daysRemaining, -9999, "Never done task should have -9999 days remaining");
-    assert(statusNever.isEligibleForCompletion, "Never done task should be eligible for completion");
 
     // Test 7: Frequency descriptions
     console.log("\n📝 Test 7: Frequency descriptions");

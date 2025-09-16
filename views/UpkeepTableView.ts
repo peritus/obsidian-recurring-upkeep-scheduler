@@ -258,8 +258,12 @@ export class UpkeepTableView {
       this.app.workspace.openLinkText(task.file.path, '');
     });
 
-    // Use centralized logic to determine if task is eligible for completion
-    if (TaskStyling.isEligibleForCompletion(task, this.now)) {
+    // Show complete button if task is overdue or never completed (daysRemaining <= 0)
+    // Don't show if completed today
+    const today = this.now;
+    const canComplete = (!task.last_done || (task.last_done !== today && task.daysRemaining <= 0));
+    
+    if (canComplete) {
       const completeButton = new CompleteButton(this.app, this.widgetEventManager);
       const buttonContainer = nameContainer.createEl('div', {
         cls: 'recurring-upkeep-button-container'

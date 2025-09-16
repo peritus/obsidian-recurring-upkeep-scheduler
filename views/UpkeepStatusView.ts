@@ -103,8 +103,7 @@ export class UpkeepStatusView {
       newTask.last_done !== this.lastTaskData.last_done ||
       newTask.status !== this.lastTaskData.status ||
       newTask.daysRemaining !== this.lastTaskData.daysRemaining ||
-      newTask.calculatedNextDue !== this.lastTaskData.calculatedNextDue ||
-      newTask.isEligibleForCompletion !== this.lastTaskData.isEligibleForCompletion
+      newTask.calculatedNextDue !== this.lastTaskData.calculatedNextDue
     );
   }
 
@@ -167,7 +166,12 @@ export class UpkeepStatusView {
     // Font weight is now handled by CSS classes
 
     // Complete button (if eligible) - localized button text
-    if (TaskStyling.isEligibleForCompletion(task, this.now)) {
+    // Show button if task is overdue or never completed (daysRemaining <= 0)
+    // Don't show if completed today
+    const today = this.now;
+    const canComplete = (!task.last_done || (task.last_done !== today && task.daysRemaining <= 0));
+    
+    if (canComplete) {
       const buttonContainer = statusRow.createEl('div');
       const completeButton = new CompleteButton(this.app, this.widgetEventManager);
       completeButton.render(buttonContainer, task);

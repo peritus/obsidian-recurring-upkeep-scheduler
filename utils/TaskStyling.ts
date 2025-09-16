@@ -152,26 +152,6 @@ export class TaskStyling {
   }
 
   /**
-   * Determines if a task is eligible for early completion
-   * This is used by complete buttons to show/hide appropriately
-   */
-  static isEligibleForCompletion(task: ProcessedTask, currentTime?: string): boolean {
-    // Never completed tasks can always be completed
-    if (!task.last_done) {
-      return true;
-    }
-
-    // Tasks completed today cannot be completed again
-    const today = currentTime || new Date().toISOString().split('T')[0];
-    if (task.last_done === today) {
-      return false;
-    }
-
-    // Only overdue tasks (daysRemaining <= 0) can be completed
-    return task.daysRemaining <= 0;
-  }
-
-  /**
    * Get priority value for sorting tasks
    * Lower numbers = higher priority (should appear first)
    */

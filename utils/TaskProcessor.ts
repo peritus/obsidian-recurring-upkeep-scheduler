@@ -26,8 +26,7 @@ export class TaskProcessor {
       console.debug('[Recurring Upkeep] Task processed', {
         taskName: task.file?.name,
         status: result.status,
-        daysRemaining: result.daysRemaining,
-        isEligible: result.isEligibleForCompletion
+        daysRemaining: result.daysRemaining
       });
     }
 

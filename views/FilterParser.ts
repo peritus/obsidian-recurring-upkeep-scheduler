@@ -192,16 +192,17 @@ export class FilterParser {
               'never': 4 
             };
             
-            const getStatusCategory = (status: string): string => {
-              if (status.includes('Overdue')) return 'overdue';
-              if (status.includes('Due today')) return 'due';
-              if (status.includes('Due in')) return 'due-soon';
-              if (status.includes('Never')) return 'never';
+            // Determine status category directly from task properties instead of parsing text
+            const getStatusCategory = (task: ProcessedTask): string => {
+              if (!task.last_done) return 'never';
+              if (task.daysRemaining < 0) return 'overdue';
+              if (task.daysRemaining === 0) return 'due';
+              if (task.daysRemaining <= 7) return 'due-soon';
               return 'up-to-date';
             };
             
-            const aOrder = statusOrder[getStatusCategory(a.status)] ?? 5;
-            const bOrder = statusOrder[getStatusCategory(b.status)] ?? 5;
+            const aOrder = statusOrder[getStatusCategory(a)] ?? 5;
+            const bOrder = statusOrder[getStatusCategory(b)] ?? 5;
             return aOrder - bOrder;
           });
           break;
