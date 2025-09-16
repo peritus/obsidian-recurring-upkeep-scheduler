@@ -4,7 +4,6 @@ export interface LocaleDefinition {
     upToDate: string;
     overdue: (days: number) => string;
     dueToday: string;
-    dueSoon: (days: number) => string;
     neverCompleted: string;
   };
 
@@ -69,7 +68,6 @@ export interface LocaleDefinition {
       recurringTasks: string;
       totalTasks: string;
       needsAttention: string;
-      dueSoon: string;
     };
     statusText: {
       thisIsTask: (frequencyDesc: string) => string;
@@ -99,11 +97,8 @@ export interface LocaleDefinition {
   filters: {
     status: {
       all: string;
-      due: string;
       overdue: string;
-      dueSoon: string;
       upToDate: string;
-      never: string;
     };
     sort: {
       dueDate: string;

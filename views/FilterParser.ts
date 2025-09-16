@@ -1,7 +1,7 @@
 import { FilterQuery, ProcessedTask } from '../types';
 
 // Type for valid status values
-type ValidStatus = 'all' | 'due' | 'overdue' | 'due-soon' | 'up-to-date' | 'never';
+type ValidStatus = 'all' | 'overdue' | 'up-to-date';
 
 // Type for valid sort values  
 type ValidSort = 'due-date' | 'status' | 'name';
@@ -89,7 +89,7 @@ export class FilterParser {
   }
 
   private static isValidStatus(value: string): value is ValidStatus {
-    return ['all', 'due', 'overdue', 'due-soon', 'up-to-date', 'never'].includes(value);
+    return ['all', 'overdue', 'up-to-date'].includes(value);
   }
 
   private static isValidSort(value: string): value is ValidSort {
@@ -135,16 +135,10 @@ export class FilterParser {
         filteredTasks = filteredTasks.filter(task => {
           return statusValues.some(status => {
             switch (status) {
-              case 'due':
-                return task.daysRemaining === 0;
               case 'overdue':
                 return task.daysRemaining < 0;
-              case 'due-soon':
-                return task.daysRemaining > 0 && task.daysRemaining <= 7;
               case 'up-to-date':
-                return task.daysRemaining > 7;
-              case 'never':
-                return task.daysRemaining === -9999;
+                return task.daysRemaining >= 0;
               default:
                 return false;
             }
@@ -186,23 +180,17 @@ export class FilterParser {
           filteredTasks.sort((a, b) => {
             const statusOrder: Record<string, number> = { 
               'overdue': 0, 
-              'due': 1, 
-              'due-soon': 2, 
-              'up-to-date': 3, 
-              'never': 4 
+              'up-to-date': 1 
             };
             
             // Determine status category directly from task properties instead of parsing text
             const getStatusCategory = (task: ProcessedTask): string => {
-              if (!task.last_done) return 'never';
               if (task.daysRemaining < 0) return 'overdue';
-              if (task.daysRemaining === 0) return 'due';
-              if (task.daysRemaining <= 7) return 'due-soon';
               return 'up-to-date';
             };
             
-            const aOrder = statusOrder[getStatusCategory(a)] ?? 5;
-            const bOrder = statusOrder[getStatusCategory(b)] ?? 5;
+            const aOrder = statusOrder[getStatusCategory(a)] ?? 2;
+            const bOrder = statusOrder[getStatusCategory(b)] ?? 2;
             return aOrder - bOrder;
           });
           break;

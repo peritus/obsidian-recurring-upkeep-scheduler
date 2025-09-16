@@ -59,13 +59,6 @@ export class I18nUtils {
   }
 
   /**
-   * Format due soon status with days
-   */
-  static formatDueSoon(days: number): string {
-    return this.t.status.dueSoon(days);
-  }
-
-  /**
    * Format frequency description
    */
   static formatFrequency(interval: number, intervalUnit: string): string {

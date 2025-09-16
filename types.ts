@@ -13,14 +13,13 @@ export interface UpkeepTask {
 export interface TaskStatus {
   status: string;
   daysRemaining: number;
-  isEligibleForCompletion: boolean;
   calculatedNextDue: string | null;
 }
 
 export interface ProcessedTask extends UpkeepTask, TaskStatus {}
 
 export interface FilterQuery {
-  status?: ('all' | 'due' | 'overdue' | 'due-soon' | 'up-to-date' | 'never') | ('all' | 'due' | 'overdue' | 'due-soon' | 'up-to-date' | 'never')[];
+  status?: ('all' | 'overdue' | 'up-to-date') | ('all' | 'overdue' | 'up-to-date')[];
   tag?: string | string[];
   interval?: string | string[];
   limit?: number;

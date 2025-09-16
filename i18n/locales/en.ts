@@ -5,7 +5,6 @@ export const en: LocaleDefinition = {
     upToDate: '✅ Up to date',
     overdue: (days: number) => `⚠️ Overdue by ${days} ${days === 1 ? 'day' : 'days'}`,
     dueToday: '⏰ Due today',
-    dueSoon: (days: number) => `⏰ Due in ${days} ${days === 1 ? 'day' : 'days'}`,
     neverCompleted: '⚠️ Never completed',
   },
 
@@ -68,7 +67,6 @@ export const en: LocaleDefinition = {
       recurringTasks: 'Recurring Tasks',
       totalTasks: 'Total',
       needsAttention: 'Needs Attention',
-      dueSoon: 'Due Soon',
     },
     statusText: {
       thisIsTask: (frequencyDesc: string) => `This is a ${frequencyDesc} task`,
@@ -97,11 +95,8 @@ export const en: LocaleDefinition = {
   filters: {
     status: {
       all: 'All tasks',
-      due: 'Due tasks',
       overdue: 'Overdue tasks',
-      dueSoon: 'Due soon',
       upToDate: 'Up to date',
-      never: 'Never completed',
     },
     sort: {
       dueDate: 'Due date',

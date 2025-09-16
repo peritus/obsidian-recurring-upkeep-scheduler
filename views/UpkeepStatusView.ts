@@ -195,8 +195,6 @@ export class UpkeepStatusView {
         return I18nUtils.formatOverdue(days);
       } else if (task.daysRemaining === 0) {
         return I18nUtils.t.status.dueToday;
-      } else if (task.daysRemaining <= 7) {
-        return I18nUtils.formatDueSoon(task.daysRemaining);
       } else {
         return I18nUtils.t.status.upToDate;
       }
@@ -231,13 +229,6 @@ export class UpkeepStatusView {
         }
       } else if (task.daysRemaining === 0) {
         dueDateText = `📅 ${I18nUtils.t.time.relative.today}`;
-      } else if (task.daysRemaining <= 7) {
-        if (task.calculatedNextDue) {
-          const dueDateFormatted = this.formatAbsoluteDate(task.calculatedNextDue);
-          dueDateText = `📅 ${I18nUtils.t.ui.labels.due} ${dueDateFormatted}`;
-        } else {
-          dueDateText = `📅 ${I18nUtils.t.filters.status.dueSoon}`;
-        }
       } else if (task.calculatedNextDue) {
         const nextDueText = I18nUtils.formatRelativeDate(task.calculatedNextDue, this.now);
         dueDateText = `📅 ${I18nUtils.t.ui.labels.nextDue} ${nextDueText}`;
