@@ -1,6 +1,7 @@
 import { App, TFile, EventRef } from 'obsidian';
 import { ProcessedTask, FilterQuery, UpkeepTask } from '../types';
 import { DateUtils } from '../utils/DateUtils';
+import { TaskProcessor } from '../utils/TaskProcessor';
 import { CompleteButton } from '../components/CompleteButton';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusIndicator } from '../components/StatusIndicator';

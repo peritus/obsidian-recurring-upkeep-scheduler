@@ -1,6 +1,7 @@
 import { Plugin, MarkdownPostProcessorContext, MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
 import { UpkeepTask, ProcessedTask } from './types';
 import { TaskProcessor } from './utils/TaskProcessor';
+import { RecurringUpkeepUtils } from './utils/RecurringUpkeepUtils';
 import { UpkeepTableView } from './views/UpkeepTableView';
 import { UpkeepStatusView } from './views/UpkeepStatusView';
 import { UpkeepSidebarView, UPKEEP_SIDEBAR_VIEW_TYPE } from './views/UpkeepSidebarView';
@@ -155,7 +156,6 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
         }
       } else {
         // Fallback: run basic tests using plugin utilities
-        const { RecurringUpkeepUtils } = await import('./utils/RecurringUpkeepUtils');
         const results = RecurringUpkeepUtils.runUnitTests();
 
         if (results.failed > 0) {
