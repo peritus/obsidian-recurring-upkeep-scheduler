@@ -29,10 +29,6 @@ export class CompleteButton {
       const result = await RecurringUpkeepUtils.markTaskComplete(this.app, task.file.path);
 
       if (result.success) {
-        // Success state
-        button.textContent = "✅ " + I18nUtils.t.filters.status.upToDate;
-        button.className = "recurring-upkeep-button recurring-upkeep-button-success";
-
         // File change will automatically trigger UI updates via metadataCache event
         // No manual notification needed!
 
@@ -40,9 +36,8 @@ export class CompleteButton {
           onComplete();
         }
 
-        setTimeout(() => {
-          button.remove();
-        }, 3000);
+        // Immediately remove button after successful completion
+        button.remove();
       } else {
         // Error state
         button.textContent = "❌ " + I18nUtils.t.ui.messages.error(result.error || "Unknown error");
