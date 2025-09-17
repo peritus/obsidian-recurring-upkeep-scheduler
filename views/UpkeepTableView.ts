@@ -124,8 +124,8 @@ export class UpkeepTableView {
         // Set data attribute for CSS-driven visibility
         buttonContainer.setAttribute('data-can-complete', canComplete.toString());
         
-        if (canComplete && buttonContainer.children.length === 0) {
-          // Add complete button if it should be visible and isn't already
+        // Always ensure button exists - CSS will handle visibility
+        if (buttonContainer.children.length === 0) {
           const completeButton = new CompleteButton(this.app);
           completeButton.render(buttonContainer, processedTask);
         }
@@ -261,18 +261,16 @@ export class UpkeepTableView {
       cls: 'recurring-upkeep-button-container'
     });
 
-    // Show complete button if task is overdue or never completed (daysRemaining <= 0)
-    // Don't show if completed today
+    // Check if task can be completed (for CSS data attribute)
     const today = this.now;
     const canComplete = (!task.last_done || (task.last_done !== today && task.daysRemaining <= 0));
     
     // Set data attribute for CSS-driven visibility
     buttonContainer.setAttribute('data-can-complete', canComplete.toString());
     
-    if (canComplete) {
-      const completeButton = new CompleteButton(this.app);
-      completeButton.render(buttonContainer, task);
-    }
+    // Always create the button - CSS will control visibility
+    const completeButton = new CompleteButton(this.app);
+    completeButton.render(buttonContainer, task);
   }
 
   private createStatusCell(row: HTMLElement, task: ProcessedTask): void {

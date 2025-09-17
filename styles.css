@@ -277,7 +277,7 @@
    DATA-DRIVEN SEMANTIC STYLING
    ======================================== */
 
-[data-can-complete="false"] .complete-button { display: none; }
+[data-can-complete="false"] .task-complete-btn { display: none; }
 
 /* ========================================
    BUTTON STYLES (Semantic Classes)
