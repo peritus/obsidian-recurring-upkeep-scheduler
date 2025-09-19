@@ -1,5 +1,18 @@
 import { TFile } from 'obsidian';
 
+// Generic file interface that can handle both TFile and Dataview file objects
+export interface FileInfo {
+  name: string;
+  path: string;
+  basename?: string;
+  extension?: string;
+  stat?: {
+    ctime: number;
+    mtime: number;
+    size: number;
+  };
+}
+
 export interface UpkeepTask {
   file: TFile;
   last_done?: string;

@@ -9,17 +9,26 @@ import { I18nUtils } from './i18n/I18nUtils';
 import { RECURRING_UPKEEP_LOGGING_ENABLED } from './constants';
 
 // Type definitions for Dataview page data
+// Dataview provides file-like objects with similar properties to TFile but they're not actual TFile instances
+interface DataviewEnhancedFile {
+  name: string;
+  path: string;
+  basename?: string;
+  extension?: string;
+  tags?: string[];
+  stat?: {
+    ctime: number;
+    mtime: number;
+    size: number;
+  };
+}
+
 interface DataviewPage {
-  file: TFile;
+  file: DataviewEnhancedFile;
   last_done?: string;
   interval?: number;
   interval_unit?: string;
   type?: string;
-}
-
-// Type definitions for TFile with tags (extended Obsidian interface)
-interface TFileWithTags extends TFile {
-  tags?: string[];
 }
 
 // Type definitions for Dataview API
@@ -319,23 +328,32 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
 
     try {
       const pages = this.dataviewApi.pages().where((p: DataviewPage) => {
-        const fileWithTags = p.file as TFileWithTags;
-        return fileWithTags.tags?.includes("recurring-task") ||
-               fileWithTags.tags?.includes("#recurring-task") ||
+        // Check if it's a valid file-like object with required properties
+        if (!p.file || !p.file.name || !p.file.path) {
+          return false;
+        }
+        
+        // Check for recurring task markers
+        return p.file.tags?.includes("recurring-task") ||
+               p.file.tags?.includes("#recurring-task") ||
                p.type === "recurring-task";
       });
 
       const tasks: UpkeepTask[] = [];
 
       for (const page of pages.values) {
-        const fileWithTags = page.file as TFileWithTags;
+        // Check if it's a valid file-like object with required properties
+        if (!page.file || !page.file.name || !page.file.path) {
+          continue;
+        }
+        
         const task: UpkeepTask = {
           file: page.file,
           last_done: page.last_done,
           interval: page.interval || 0,
           interval_unit: page.interval_unit || '',
           type: page.type,
-          tags: fileWithTags.tags || []
+          tags: page.file.tags || []
         };
 
         if (task.interval && task.interval_unit) {
