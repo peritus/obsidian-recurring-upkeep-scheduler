@@ -19,6 +19,7 @@ and fix all errors.
 build = ['npm', 'run', 'build']
 test = ['npm', 'test']
 npm_install = ['npm', 'install']
+build_and_install = ["npm", "run", "build-and-install"]
 
 paths_blocked = [
     # Version control internals (major space wasters)
