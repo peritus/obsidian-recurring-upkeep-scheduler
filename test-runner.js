@@ -30,6 +30,7 @@ global.app = mockApp;
 
 // Import the utility classes
 const { RecurringUpkeepUtils } = require('./utils/RecurringUpkeepUtils');
+const { RecurringUpkeepSchedulerTests } = require('./TestSuite');
 const { DateUtils } = require('./utils/DateUtils');
 
 console.log('🧪 CLI Test Runner for Recurring Upkeep Scheduler');
@@ -37,7 +38,7 @@ console.log('=================================================');
 
 try {
   // Run the existing comprehensive tests
-  const results = RecurringUpkeepUtils.runUnitTests();
+  const results = RecurringUpkeepSchedulerTests.runUnitTests();
 
   console.log('\n📊 Final Results:');
   console.log('=================');
