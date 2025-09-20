@@ -14,7 +14,7 @@ export interface FileInfo {
 }
 
 export interface UpkeepTask {
-  file: TFile;
+  file: FileInfo | TFile;
   last_done?: string;
   interval: number;
   interval_unit: string;

@@ -107,20 +107,67 @@ export class FilterParser {
     key: K,
     value: NonNullable<FilterQuery[K]> extends (infer U)[] ? U : NonNullable<FilterQuery[K]>
   ): void {
-    const currentValue = filter[key];
+    // Handle each property type-safely
+    if (key === 'status') {
+      this.addStatusToFilter(filter, value as 'all' | 'overdue' | 'up-to-date');
+    } else if (key === 'tag') {
+      this.addTagToFilter(filter, value as string);
+    } else if (key === 'interval') {
+      this.addIntervalToFilter(filter, value as string);
+    }
+  }
 
-    if (currentValue === undefined) {
-      // TypeScript assertion here is safe because we know the value matches the expected type
-      (filter[key] as any) = value;
-    } else if (Array.isArray(currentValue)) {
-      if (!currentValue.includes(value as any)) {
-        currentValue.push(value as any);
+  private static addStatusToFilter(filter: FilterQuery, value: 'all' | 'overdue' | 'up-to-date'): void {
+    if (filter.status === undefined) {
+      filter.status = value;
+      return;
+    }
+    
+    if (Array.isArray(filter.status)) {
+      if (!filter.status.includes(value)) {
+        filter.status.push(value);
       }
-    } else {
-      if (currentValue !== value) {
-        // TypeScript assertion here is safe because we're creating a valid array
-        (filter[key] as any) = [currentValue, value];
+      return;
+    }
+    
+    if (filter.status !== value) {
+      filter.status = [filter.status, value];
+    }
+  }
+
+  private static addTagToFilter(filter: FilterQuery, value: string): void {
+    if (filter.tag === undefined) {
+      filter.tag = value;
+      return;
+    }
+    
+    if (Array.isArray(filter.tag)) {
+      if (!filter.tag.includes(value)) {
+        filter.tag.push(value);
       }
+      return;
+    }
+    
+    if (filter.tag !== value) {
+      filter.tag = [filter.tag, value];
+    }
+  }
+
+  private static addIntervalToFilter(filter: FilterQuery, value: string): void {
+    if (filter.interval === undefined) {
+      filter.interval = value;
+      return;
+    }
+    
+    if (Array.isArray(filter.interval)) {
+      if (!filter.interval.includes(value)) {
+        filter.interval.push(value);
+      }
+      return;
+    }
+    
+    if (filter.interval !== value) {
+      filter.interval = [filter.interval, value];
     }
   }
 

@@ -628,14 +628,12 @@ export class RecurringUpkeepUtils {
 
     // Test 5: Task completed today - THE BUG FIX TEST
     console.log("\n🐛 Test 5: Task completed today (BUG FIX)");
-    const mockFile: TFile = {
+    const mockFile: Pick<TFile, 'name' | 'path' | 'stat' | 'basename' | 'extension'> = {
       name: "test-task.md",
       path: "test-task.md",
       stat: { mtime: Date.now(), ctime: Date.now(), size: 0 },
       basename: "test-task",
-      extension: "md",
-      parent: null,
-      vault: null as any
+      extension: "md"
     };
     const taskCompletedToday: UpkeepTask = {
       file: mockFile,
