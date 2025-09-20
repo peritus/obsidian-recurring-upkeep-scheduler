@@ -116,11 +116,8 @@ export default class RecurringUpkeepSchedulerPlugin extends Plugin {
         this.renderUpkeepStatus(source, el, ctx);
       });
 
-
-
-      // Run tests in development mode
-      if (process.env.NODE_ENV === 'development') {
-        this.runTests();
+      if (RECURRING_UPKEEP_LOGGING_ENABLED) {
+        console.info('[Recurring Upkeep] To run unit tests, execute: \n\napp.plugins.plugins[\'' + this.manifest.id + '\'].runTests();\n');
       }
 
       if (RECURRING_UPKEEP_LOGGING_ENABLED) {
